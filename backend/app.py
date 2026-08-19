@@ -1,6 +1,13 @@
 import logging
+import sys
+from pathlib import Path
 from flask import Flask, jsonify
 from flask_cors import CORS
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from config import Config
 from database import db
 from routes import make_error

@@ -2,6 +2,7 @@
 UrbanShield - Central Pipeline Orchestrator
 Coordinates the 6-layer urban flood risk management and resource allocation pipeline:
 SENSE -> PREDICT -> PRIORITIZE -> OPTIMIZE -> RECOMMEND -> SIMULATE
+Powered by real publicly available Chennai municipal & meteorological data.
 """
 
 import logging
@@ -26,10 +27,10 @@ logger = logging.getLogger("UrbanShield.Orchestrator")
 
 
 class UrbanShieldAgent:
-    def __init__(self, csv_path: str = None, db_path: str = None, model_path: str = None):
+    def __init__(self, db_path: str = None, csv_path: str = None):
         """Initializes all 6 standalone pipeline layers."""
-        self.sense_layer = SenseLayer(csv_path, db_path)
-        self.predict_layer = PredictLayer(model_path)
+        self.sense_layer = SenseLayer(db_path=db_path, csv_path=csv_path)
+        self.predict_layer = PredictLayer()
         self.prioritize_layer = PrioritizeLayer()
         self.optimize_layer = OptimizeLayer()
         self.recommend_layer = RecommendLayer()
@@ -53,8 +54,8 @@ class UrbanShieldAgent:
         # LAYER 1: SENSE
         # ------------------------------------------------------------------
         try:
-            logger.info("[LAYER 1: SENSE] Ingesting CSV and syncing SQLite database state...")
-            self.sense_layer.load_csv_to_db()
+            logger.info("[LAYER 1: SENSE] Ingesting real Chennai datasets and syncing SQLite database...")
+            self.sense_layer.load_real_data_to_db()
             zone_state = self.sense_layer.get_structured_state()
             logger.info(f"[LAYER 1: SENSE] Success. Structured state loaded for {len(zone_state)} valid zones.")
         except Exception as e:
@@ -66,7 +67,7 @@ class UrbanShieldAgent:
         # LAYER 2: PREDICT
         # ------------------------------------------------------------------
         try:
-            logger.info("[LAYER 2: PREDICT] Estimating Random Forest flood risk scores and uncertainty...")
+            logger.info("[LAYER 2: PREDICT] Estimating evidence-based flood risk scores and observational confidence...")
             predictions_df = self.predict_layer.get_predictions(zone_state)
             logger.info(f"[LAYER 2: PREDICT] Success. Generated risk_score and risk_confidence for {len(predictions_df)} zones.")
         except Exception as e:
@@ -121,14 +122,7 @@ class UrbanShieldAgent:
 
     def run_simulation(self, zone_overrides: dict = None, resource_overrides: dict = None) -> tuple:
         """
-        Executes Layer 6 (SIMULATE) for scenario what-if analysis.
-        
-        Args:
-            zone_overrides (dict, optional): Zone metric overrides (e.g. {"Z05": {"rainfall": 180.0}})
-            resource_overrides (dict, optional): Global resource overrides (e.g. {"total_pumps": 8})
-            
-        Returns:
-            tuple: (simulated_df, simulation_summary_dict, comparison_delta_dict)
+        Executes Layer 6 (SIMULATE) for what-if scenario analysis.
         """
         logger.info("[LAYER 6: SIMULATE] Running scenario simulation...")
         return self.simulate_layer.run_simulation(
@@ -150,15 +144,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print("\n" + "=" * 100)
-    print(" URBANSHIELD AGENT — END-TO-END PIPELINE SUMMARY")
+    print(" URBANSHIELD AGENT — END-TO-END PIPELINE SUMMARY (REAL CHENNAI DATA)")
     print("=" * 100)
-    print(f" Valid Zones Ingested : {summary.get('total_zones', 0)} zones")
-    print(f" ML Model Status      : Loaded / Active (models/flood_rf_model.joblib)")
+    print(f" Real Zones Ingested : {summary.get('total_zones', 0)} zones (OpenCity Inundation + GCC Hotspots)")
+    print(f" Risk Assessment     : Evidence-Based Estimation (Inundation Depth + Hazard Tier + IMD Rainfall)")
     print(f" Zones Ranked         : {len(final_df)} zones (MCDA 0.0-1.0 scoring)")
     print(f" Solver Status        : {summary.get('solver_status', 'N/A')} (Solve Time: {summary.get('solve_time_seconds', 0)}s)")
     print(f" Serviced Zones       : {summary.get('zones_serviced', 0)} / {summary.get('total_zones', 0)} zones")
     print(f" Priority Coverage %  : {summary.get('score_coverage_percentage', 0.0)}% ({summary.get('total_covered_score', 0.0):.4f} / {summary.get('total_possible_score', 0.0):.4f})")
-    print(f" Resource Utilization : Pumps: {summary.get('pumps_deployed', 0)}/{summary.get('total_pumps_capacity', 0)} | Crews: {summary.get('crews_deployed', 0)}/{summary.get('total_crews_capacity', 0)} | Budget: ${summary.get('budget_spent', 0.0):,.0f}/${summary.get('total_budget_capacity', 0.0):,.0f}")
+    print(f" Resource Utilization : Pumps: {summary.get('pumps_deployed', 0)}/{summary.get('total_pumps_capacity', 0)} | Crews: {summary.get('crews_deployed', 0)}/{summary.get('total_crews_capacity', 0)} | Budget: ₹{summary.get('budget_spent', 0.0):,.0f}/₹{summary.get('total_budget_capacity', 0.0):,.0f}")
     print("=" * 100)
 
     print("\nFINAL ACTIONABLE DIRECTIVES TABLE:")

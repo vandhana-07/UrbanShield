@@ -160,15 +160,18 @@ class SimulateLayer:
                 "after": f"{sim_summary.get('crews_deployed', 0)}/{sim_summary.get('total_crews_capacity', 0)}"
             },
             "budget_spent": {
-                "before": f"${base_summary.get('budget_spent', 0.0):,.0f}/${base_summary.get('total_budget_capacity', 0.0):,.0f}",
-                "after": f"${sim_summary.get('budget_spent', 0.0):,.0f}/${sim_summary.get('total_budget_capacity', 0.0):,.0f}"
+                "before": f"₹{base_summary.get('budget_spent', 0.0):,.0f} / ₹{base_summary.get('total_budget_capacity', 0.0):,.0f}",
+                "after": f"₹{sim_summary.get('budget_spent', 0.0):,.0f} / ₹{sim_summary.get('total_budget_capacity', 0.0):,.0f}"
             }
         }
 
         # Zone-Level Comparisons & Flips
+        rf_col = "rainfall_mm" if "rainfall_mm" in base_df.columns else "rainfall"
+        depth_col = "inundation_depth_inches" if "inundation_depth_inches" in base_df.columns else "inundation_depth"
+        
         merged = pd.merge(
-            base_df[["zone_id", "zone_name", "rainfall", "risk_score", "risk_confidence", "priority_score", "allocation_status", "recommended_action"]],
-            sim_df[["zone_id", "rainfall", "risk_score", "risk_confidence", "priority_score", "allocation_status", "recommended_action"]],
+            base_df[["zone_id", "zone_name", rf_col, depth_col, "risk_score", "risk_confidence", "priority_score", "allocation_status", "recommended_action"]],
+            sim_df[["zone_id", rf_col, depth_col, "risk_score", "risk_confidence", "priority_score", "allocation_status", "recommended_action"]],
             on="zone_id",
             suffixes=("_before", "_after")
         )
@@ -209,7 +212,7 @@ class SimulateLayer:
 
 
 if __name__ == "__main__":
-    # Standalone verification runner testing multiple simulation scenarios
+    # Standalone verification runner testing what-if simulation scenarios
     logger.info("Initializing SimulateLayer...")
     sim = SimulateLayer()
 
@@ -219,7 +222,7 @@ if __name__ == "__main__":
 
     # Scenario 1: Resource Pool Expansion (8 pumps, 6 crews, $650,000 budget)
     print("\n" + "=" * 90)
-    print(" SCENARIO A: RESOURCE EXPANSION (+2 Pumps, +2 Crews, +$150k Budget)")
+    print(" WHAT-IF SCENARIO A: RESOURCE EXPANSION (+2 Pumps, +2 Crews, +$150k Budget)")
     print("=" * 90)
     sim_rec_a, sim_sum_a, delta_a = sim.run_simulation(
         resource_overrides={"total_pumps": 8, "total_crews": 6, "total_budget": 650000.0},
@@ -235,12 +238,12 @@ if __name__ == "__main__":
     print(f" Gained Allocation: {', '.join(delta_a['gained_zones']) if delta_a['gained_zones'] else 'None'}")
     print(f" Lost Allocation  : {', '.join(delta_a['lost_zones']) if delta_a['lost_zones'] else 'None'}")
 
-    # Scenario 2: Combined Overrides (Heavy Rainfall Spike on Z08 + Resource Expansion)
+    # Scenario 2: Combined Overrides (Severe Rainfall Spike on CHN-Z03 T. Nagar + Resource Expansion)
     print("\n" + "=" * 90)
-    print(" SCENARIO B: COMBINED (Z08 Rainfall 75->180mm + Resource Expansion)")
+    print(" WHAT-IF SCENARIO B: DELUGE SPIKE (CHN-Z03 T. Nagar Rain 32->120mm + Resource Expansion)")
     print("=" * 90)
     sim_rec_b, sim_sum_b, delta_b = sim.run_simulation(
-        zone_overrides={"Z08": {"rainfall": 180.0}},
+        zone_overrides={"CHN-Z03": {"rainfall_mm": 120.0, "inundation_depth_inches": 22.0}},
         resource_overrides={"total_pumps": 8, "total_crews": 6, "total_budget": 650000.0},
         baseline_tuple=base_tuple
     )
@@ -248,32 +251,32 @@ if __name__ == "__main__":
     g_b = delta_b["global_metrics"]
     print(f" Serviced Zones   : {g_b['serviced_zones']['before']} -> {g_b['serviced_zones']['after']} (Diff: {g_b['serviced_zones']['diff']:+d})")
     print(f" Priority Coverage: {g_b['score_coverage_pct']['before']}% -> {g_b['score_coverage_pct']['after']}% (Diff: {g_b['score_coverage_pct']['diff']:+.2f}%)")
+    print(f" Gained Allocation: {', '.join(delta_b['gained_zones']) if delta_b['gained_zones'] else 'None'}")
+    print(f" Lost Allocation  : {', '.join(delta_b['lost_zones']) if delta_b['lost_zones'] else 'None'}")
+    print("=" * 90 + "\n")
+    print("\nZone CHN-Z03 Specific Metrics Delta (Scenario B):")
+    rf_col = "rainfall_mm" if "rainfall_mm_before" in delta_b["zone_delta_df"].columns else "rainfall"
+    z3_matches = delta_b["zone_delta_df"][delta_b["zone_delta_df"]["zone_id"] == "CHN-Z03"]
+    if not z3_matches.empty:
+        z3_row = z3_matches.iloc[0]
+        print(f" - Zone ID              : {z3_row['zone_id']} ({z3_row['zone_name']})")
+        print(f" - Rainfall             : {z3_row[rf_col + '_before']} mm  ->  {z3_row[rf_col + '_after']} mm")
+        print(f" - Risk Score           : {z3_row['risk_score_before']:.4f}     ->  {z3_row['risk_score_after']:.4f}")
+        print(f" - Priority Score       : {z3_row['priority_score_before']:.4f} ->  {z3_row['priority_score_after']:.4f}")
+        print(f" - Allocation Status    : {z3_row['allocation_status_before']} ->  {z3_row['allocation_status_after']}")
 
-    print("\nZone Z08 Specific Metrics Delta (Scenario B):")
-    z8_row = delta_b["zone_delta_df"][delta_b["zone_delta_df"]["zone_id"] == "Z08"].iloc[0]
-    print(f" - Zone ID              : {z8_row['zone_id']} ({z8_row['zone_name']})")
-    print(f" - Rainfall             : {z8_row['rainfall_before']} mm/h  ->  {z8_row['rainfall_after']} mm/h")
-    print(f" - Risk Score           : {z8_row['risk_score_before']:.4f}     ->  {z8_row['risk_score_after']:.4f}")
-    print(f" - Priority Score       : {z8_row['priority_score_before']:.4f} ->  {z8_row['priority_score_after']:.4f}")
-
-    # Scenario 3: Low Risk Zone Spike (Z06 Rainfall 30->180mm)
+    # Scenario 3: Budget Cut What-If (-40% budget cut to $300,000)
     print("\n" + "=" * 90)
-    print(" SCENARIO C: LOW-RISK ZONE RAINFALL SPIKE (Z06 Rainfall 30->180mm)")
+    print(" WHAT-IF SCENARIO C: MUNICIPAL BUDGET CUT (-40% Budget Cut to $300,000)")
     print("=" * 90)
     sim_rec_c, sim_sum_c, delta_c = sim.run_simulation(
-        zone_overrides={"Z06": {"rainfall": 180.0}},
+        resource_overrides={"total_budget": 300000.0},
         baseline_tuple=base_tuple
     )
 
-    z6_row = delta_c["zone_delta_df"][delta_c["zone_delta_df"]["zone_id"] == "Z06"].iloc[0]
-    print(f" - Zone ID              : {z6_row['zone_id']} ({z6_row['zone_name']})")
-    print(f" - Rainfall             : {z6_row['rainfall_before']} mm/h  ->  {z6_row['rainfall_after']} mm/h")
-    print(f" - Risk Score           : {z6_row['risk_score_before']:.4f}     ->  {z6_row['risk_score_after']:.4f}")
-    print(f" - Risk Confidence      : {z6_row['risk_confidence_before']:.4f} ->  {z6_row['risk_confidence_after']:.4f}")
-    print(f" - Priority Score       : {z6_row['priority_score_before']:.4f} ->  {z6_row['priority_score_after']:.4f}")
-    print(f" - Allocation Status    : {z6_row['allocation_status_before']}        ->  {z6_row['allocation_status_after']}")
-
-    print("\nSide-by-Side Zone Delta Table (Scenario B):")
-    delta_cols = ["zone_id", "zone_name", "rainfall_before", "rainfall_after", "risk_score_before", "risk_score_after", "priority_score_before", "priority_score_after", "allocation_status_before", "allocation_status_after", "status_change"]
-    print(delta_b["zone_delta_df"][delta_cols].to_string(index=False))
+    g_c = delta_c["global_metrics"]
+    print(f" Serviced Zones   : {g_c['serviced_zones']['before']} -> {g_c['serviced_zones']['after']} (Diff: {g_c['serviced_zones']['diff']:+d})")
+    print(f" Priority Coverage: {g_c['score_coverage_pct']['before']}% -> {g_c['score_coverage_pct']['after']}% (Diff: {g_c['score_coverage_pct']['diff']:+.2f}%)")
+    print(f" Budget Spent     : {g_c['budget_spent']['before']} -> {g_c['budget_spent']['after']}")
+    print(f" Lost Allocation  : {', '.join(delta_c['lost_zones']) if delta_c['lost_zones'] else 'None'}")
     print("=" * 90 + "\n")

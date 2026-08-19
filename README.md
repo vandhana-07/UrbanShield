@@ -1,44 +1,67 @@
 # 🏙️ UrbanShield — AI-Powered Urban Infrastructure Risk Management & Decision Support
 
-> **UrbanShield** is an end-to-end intelligent resilience platform that predicts structural failures, prioritizes municipal interventions, and simulates disaster scenarios across critical metropolitan infrastructure assets.
+> **UrbanShield** is an end-to-end intelligent urban resilience platform that integrates real-world municipal flood datasets to assess flood risks, prioritize emergency interventions, and simulate disaster response scenarios across critical urban infrastructure in Chennai, India.
 
-[![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen.svg)]()
+[![Status](https://img.shields.io/badge/Status-Active%20Deployment-brightgreen.svg)]()
 [![Backend](https://img.shields.io/badge/Backend-Flask%20%7C%20SQLite%20%7C%20REST-blue.svg)](./backend/README.md)
-[![Frontend](https://img.shields.io/badge/Frontend-React%20%7C%20Vite%20%7C%20Tailwind-purple.svg)]()
-[![AI Engine](https://img.shields.io/badge/AI%20Agent-Multi--Layer%20Intelligence-orange.svg)]()
+[![Frontend](https://img.shields.io/badge/Frontend-Streamlit%20%7C%20Folium%20%7C%20Interactive%20Maps-purple.svg)](./app/main.py)
+[![AI Engine](https://img.shields.io/badge/AI%20Agent-6--Layer%20Intelligence%20%2B%20OR--Tools-orange.svg)](./agent/orchestrator.py)
+[![Tests](https://img.shields.io/badge/Tests-71%2F71%20Passed%20(100%25)-success.svg)](./backend/tests/smoke_test.py)
 
 ---
 
-## 🏛️ System Architecture & Team Allocation
+## 🏛️ System Architecture & Multi-Layer Pipeline
 
-UrbanShield is designed around a modular 3-tier architecture with clean separation of concerns:
+UrbanShield operates on a modular 6-layer intelligence pipeline powered by real municipal datasets:
+
+$$\text{SENSE} \longrightarrow \text{PREDICT} \longrightarrow \text{PRIORITIZE} \longrightarrow \text{OPTIMIZE} \longrightarrow \text{RECOMMEND} \longrightarrow \text{SIMULATE}$$
+
+1. **SENSE**: Ingests real surveyed inundation depths, GCC flood hotspots, IMD weather station telemetry, and CMDA flood hazard zones with Haversine spatial proximity matching across 16 monitored locations.
+2. **PREDICT**: Evidence-based flood risk estimation ($0.0$ to $1.0$) and observational confidence scoring derived directly from ground-truth depth surveys and weather observations.
+3. **PRIORITIZE**: Deterministic Multi-Criteria Decision Analysis (MCDA) assigning transparent urgency tiers (`CRITICAL`, `HIGH`, `MODERATE`, `LOW`).
+4. **OPTIMIZE**: Constraint-based resource allocation using **Google OR-Tools CP-SAT Solver** to maximize covered priority score within pump, crew, and budget caps (in ₹ INR).
+5. **RECOMMEND**: Generates actionable operational directives (*e.g., "REPAIR & DISPATCH IMMEDIATELY"*) and deterministic natural language briefings for emergency dispatchers.
+6. **SIMULATE**: In-memory "What-If" crisis simulation engine evaluating hypothetical deluges, storm surges, or budget contractions with side-by-side delta metrics.
 
 ```mermaid
 graph LR
-    subgraph Member1 ["Frontend (Member 1)"]
-        UI[Interactive Geospatial Dashboard & Scenario Visualizer]
+    subgraph SENSE ["1. SENSE"]
+        D1[OpenCity Inundation Data]
+        D2[GCC Flood Hotspots]
+        D3[IMD Weather Stations]
+        D4[CMDA Flood Hazard Map]
+        D5[Critical Infrastructure - REC]
     end
 
-    subgraph Member2 ["Backend & DB (Member 2)"]
-        API[Flask REST API Engine\n+ Deterministic Mock System\n+ SQLite DB]
+    subgraph CORE ["2-5. INTELLIGENCE ENGINE"]
+        PREDICT[2. PREDICT: Evidence Risk Scoring]
+        PRIORITIZE[3. PRIORITIZE: MCDA Ranking]
+        OPTIMIZE[4. OPTIMIZE: Google OR-Tools CP-SAT]
+        RECOMMEND[5. RECOMMEND: Action Directives]
     end
 
-    subgraph Member3 ["AI / Multi-Layer Agent (Member 3)"]
-        AI[Sense → Predict → Prioritize → Optimize → Recommend → Simulate]
+    subgraph SIM ["6. SIMULATE"]
+        SIMULATE[What-If Scenario Delta Engine]
     end
 
-    UI <===>|HTTP REST /api| API
-    API <===>|HTTP REST /agent (Fallback-Protected)| AI
+    SENSE --> CORE --> SIM
 ```
 
 ---
 
-## 📊 Dataset & Machine Learning Calibration
+## 📊 Real Data Sources & Provenance
 
-UrbanShield trains its predictive models on a **calibrated synthetic dataset** (`data/indian_flood_dataset.csv`) whose parameter distributions are anchored to documented Indian monsoon events and municipal statistics across major metropolitan flood zones (e.g., Mumbai Mithi River, Chennai Velachery, Bengaluru Silk Board, Kolkata MG Road, Delhi Yamuna Floodplain, Hyderabad Musi River, and Kochi). 
+UrbanShield uses publicly available real-world Chennai rainfall and flood/inundation datasets:
 
-*All parameter anchors and citations are documented in [`data/SOURCES.md`](./data/SOURCES.md).*  
-*Note: The training dataset is synthetically generated and calibrated against published figures; it is not raw governmental sensor telemetry.*
+* **OpenCity / Greater Chennai Corporation (GCC)**: 192 surveyed ground-truth flood inundation points with measured water depths and field inspection remarks.
+* **GCC Disaster Management Cell**: 53 designated municipal flood hotspots identified during Cyclone Nivar and extreme monsoon events.
+* **India Meteorological Department (IMD)**: 119 weather station records providing observed rainfall metrics across the Chennai metropolitan area.
+* **CMDA / GCC Master Plan**: 7,453 geospatial polygons categorizing flood hazard susceptibility.
+* **Critical Infrastructure (REC Campus)**: Rajalakshmi Engineering College (Thandalam, Chennai — `13.009644, 80.004336`) integrated with distance-weighted spatial proximity to nearest IMD Chembarambakkam station (`47.0mm`, `5.76km`).
+
+*For complete data provenance and methodology, see [`docs/data_sources.md`](./docs/data_sources.md).*
+
+> **Disclaimer**: *UrbanShield uses publicly available historical Chennai rainfall, inundation and flood-hazard observations. The current prototype performs evidence-based risk estimation rather than claiming a fully trained real-world predictive ML model. Future versions will integrate larger time-aligned historical datasets for supervised prediction.*
 
 ---
 
@@ -46,43 +69,68 @@ UrbanShield trains its predictive models on a **calibrated synthetic dataset** (
 
 ```
 UrbanShield/
-├── backend/                     # 🛡️ Backend API, SQLite Database, Mock Engine, & Tests (Member 2)
-│   ├── app.py                   # Flask Application Factory & Blueprints
-│   ├── config.py                # Typed Environment Config Loader
-│   ├── database.py              # SQLAlchemy DB Instance
-│   ├── models.py                # Asset, RiskAssessment, PriorityRanking, Recommendation, Simulation
-│   ├── seed.py                  # CLI Seeder for 25 Urban Infrastructure Assets
-│   ├── routes/                  # REST Endpoints (/api/system, /api/dashboard, /api/assets, /api/simulations)
-│   ├── services/                # Mock Engine & Resilient Agent Client with Fallback
-│   ├── tests/                   # 45-Point Automated Smoke Test Suite
-│   └── README.md                # 📖 Complete Backend Documentation & API Reference
+├── app/                         # 📊 Interactive Streamlit Frontend Dashboard
+│   └── main.py                  # Streamlit Multi-Page App (Folium Geospatial Map + Stepper + Simulator)
 │
-├── frontend/                    # 🎨 Interactive Geospatial Dashboard (Member 1)
-├── layers/                      # 🤖 Multi-Layer AI Intelligence (Sense, Predict, Prioritize, Optimize, Recommend, Simulate)
-├── data/                        # 📈 Calibrated Datasets (indian_flood_dataset.csv, SOURCES.md)
-└── docs/                        # 📖 AI/ML Architecture & Explainability Documentation
+├── backend/                     # 🛡️ Backend REST API, SQLite Database, & Tests
+│   ├── app.py                   # Flask Application Factory & Blueprints
+│   ├── models.py                # Asset, RiskAssessment, PriorityRanking, Recommendation, Simulation
+│   ├── routes/                  # REST Endpoints (/api/system, /api/dashboard, /api/zones/real, etc.)
+│   ├── services/                # Evidence Risk Engine & Resilient Agent Client
+│   └── tests/                   # 71-Point Automated Smoke Test Suite
+│
+├── layers/                      # 🤖 Multi-Layer AI Intelligence System
+│   ├── sense.py                 # Layer 1: Real Chennai Data Ingestion & Spatial Joining (16 Locations)
+│   ├── predict.py               # Layer 2: Evidence-Based Flood Risk Estimation
+│   ├── prioritize.py            # Layer 3: Deterministic MCDA Urgency Ranking
+│   ├── optimize.py              # Layer 4: Google OR-Tools CP-SAT Resource Optimization (₹ INR)
+│   ├── recommend.py             # Layer 5: Action Directives & Executive Briefings
+│   └── simulate.py              # Layer 6: What-If Crisis Scenario Engine
+│
+├── agent/                       # 🔗 Agent Pipeline Orchestrator & Server Bridges
+│   ├── orchestrator.py          # End-to-End Pipeline Execution Engine
+│   └── server.py                # Standalone HTTP Agent Server (Port 8000)
+│
+├── data/                        # 📈 Real Chennai Datasets (KML, CSV, SQLite Database)
+│   ├── opencity_inundation_points.kml
+│   ├── opencity_gcc_flood_hotspots_2020.kml
+│   ├── chennai_rainfall_stations.csv
+│   ├── opencity_flood_hazard_zones.kml
+│   ├── zones.csv
+│   └── urbanshield.db
+│
+└── docs/                        # 📖 Architecture & Data Documentation
+    ├── data_sources.md          # Complete Real Data Provenance & Citations
+    └── ai_ml_answers.md         # System Explainability & Decision Rationale
 ```
 
 ---
 
-## 🚀 Quickstart Guide
+## 🚀 Running the System
 
-### 1. Run the Backend API (Port 5000)
+### 1. Terminal 1: Start Agent HTTP Server (Port 8000)
 ```bash
-cd backend
-python -m venv venv
-
-# Windows
-.\venv\Scripts\Activate.ps1
-# macOS / Linux
-source venv/bin/activate
-
-pip install -r requirements.txt
-python seed.py
-python app.py
+python agent/server.py
 ```
-*Backend runs at `http://localhost:5000/api`.*  
-*For comprehensive backend API documentation, see [backend/README.md](./backend/README.md).*
+
+### 2. Terminal 2: Start Flask Backend API (Port 5000)
+```bash
+python backend/app.py
+```
+
+### 3. Terminal 3: Start Streamlit Frontend Dashboard (Port 8501)
+```bash
+python -m streamlit run app/main.py
+```
+* **Frontend UI**: `http://localhost:8501`
+* **Backend API**: `http://localhost:5000/api`
+* **Agent Server**: `http://localhost:8000/agent`
+
+### 4. Run the Automated Smoke Test Suite
+```bash
+python backend/tests/smoke_test.py
+```
+*Runs all 71 unit and integration tests across the multi-tier platform.*
 
 ---
 

@@ -162,3 +162,37 @@ def predict_zone_flood_risk():
         return make_response(result, source=source)
     except Exception as exc:
         return make_error("INTERNAL_ERROR", "Failed to predict flood risk", details=[str(exc)], status_code=500)
+
+
+@zones_bp.route("/zones/real", methods=["GET"])
+@zones_bp.route("/agent/pipeline", methods=["GET"])
+def get_real_chennai_pipeline():
+    """
+    Executes or fetches the live 6-layer UrbanShield pipeline results
+    for real Chennai municipal zones (OpenCity/GCC/IMD data).
+    """
+    try:
+        import requests
+        from config import Config
+        from agent.orchestrator import UrbanShieldAgent
+
+        agent_url = Config.AGENT_URL
+        try:
+            resp = requests.post(f"{agent_url}/agent/analyze", json={}, timeout=4.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                return make_response(data, source="agent")
+        except Exception:
+            pass
+
+        # Fallback to direct in-process Agent execution
+        agent_instance = UrbanShieldAgent()
+        final_df, opt_summary = agent_instance.run_full_pipeline()
+        return make_response({
+            "pipeline_summary": opt_summary,
+            "zones": final_df.to_dict(orient="records"),
+            "data_provenance": "Real Chennai Observations (OpenCity / GCC / IMD)"
+        }, source="agent_direct")
+
+    except Exception as exc:
+        return make_error("INTERNAL_ERROR", "Failed to retrieve real zone pipeline data", details=[str(exc)], status_code=500)

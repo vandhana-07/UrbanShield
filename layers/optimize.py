@@ -41,20 +41,19 @@ class OptimizeLayer:
 
     def _calculate_zone_requirements(self, row: pd.Series) -> tuple:
         """
-        Calculates required pumps, crews, and cost for a zone based on physical metrics.
+        Calculates required pumps, crews, and cost for a zone based on real flood evidence.
         
         Rules:
-        - Pumps: 2 pumps if rainfall > 100mm/h and drainage < 40mm/h, else 1 pump.
-        - Crews: 2 crews if population > 50,000 or critical_infra >= 5, else 1 crew.
+        - Pumps: 2 heavy pumps if inundation_depth >= 12.0 inches or rainfall >= 40mm, else 1 pump.
+        - Crews: 2 emergency crews if hazard_category is VERY_HIGH/HIGH or inundation_depth >= 14.0 inches, else 1 crew.
         - Cost: Base dispatch ($30,000) + (pumps * $40,000) + (crews * $35,000).
         """
-        rainfall = row.get("rainfall", 0.0)
-        drainage = row.get("drainage_capacity", 50.0)
-        population = row.get("population", 0)
-        infra = row.get("critical_infrastructure", 0)
+        depth = float(row.get("inundation_depth_inches", 6.0))
+        hazard = str(row.get("hazard_category", "MODERATE")).strip().upper()
+        rainfall = float(row.get("rainfall_mm", 30.0))
 
-        pumps_needed = 2 if (rainfall > 100.0 and drainage < 40.0) else 1
-        crews_needed = 2 if (population > 50000 or infra >= 5) else 1
+        pumps_needed = 2 if (depth >= 12.0 or rainfall >= 40.0) else 1
+        crews_needed = 2 if (hazard in ["VERY_HIGH", "HIGH"] or depth >= 14.0) else 1
         cost_needed = 30000.0 + (pumps_needed * 40000.0) + (crews_needed * 35000.0)
 
         return pumps_needed, crews_needed, cost_needed
@@ -155,7 +154,7 @@ class OptimizeLayer:
                 allocated_crews_col.append(c_req)
                 allocated_cost_col.append(cost_r)
                 status_col.append("ALLOCATED")
-                reason_col.append(f"ALLOCATED: {p_req} pumps, {c_req} crews (${cost_r:,.0f})")
+                reason_col.append(f"ALLOCATED: {p_req} pumps, {c_req} crews (₹{cost_r:,.0f})")
             else:
                 allocated_pumps_col.append(0)
                 allocated_crews_col.append(0)
@@ -170,12 +169,12 @@ class OptimizeLayer:
                 if c_req > rem_crews:
                     exceeded_constraints.append(f"requires {c_req} crews, {rem_crews} available")
                 if cost_r > rem_budget:
-                    exceeded_constraints.append(f"requires ${cost_r:,.0f} budget, ${rem_budget:,.0f} available")
+                    exceeded_constraints.append(f"requires ₹{cost_r:,.0f} budget, ₹{rem_budget:,.0f} available")
 
                 if exceeded_constraints:
                     reason_col.append(f"SKIPPED: Infeasible alone — {'; '.join(exceeded_constraints)}")
                 else:
-                    reason_col.append("SKIPPED: Solved combination — resources allocated to a higher-value combination of other zones")
+                    reason_col.append("SKIPPED: Knapsack combination — resources allocated to a higher-value combination of other zones")
 
         df["allocated_pumps"] = allocated_pumps_col
         df["allocated_crews"] = allocated_crews_col

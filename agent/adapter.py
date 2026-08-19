@@ -22,40 +22,27 @@ def asset_to_zone_dict(asset_dict: dict) -> dict:
     health_idx = float(asset_dict.get("health_index", 75.0))
     crit_score = float(asset_dict.get("criticality_score", 5.0))
 
-    # 1. Rainfall (mm/h)
-    rainfall = float(sensor.get("rainfall_mm", sensor.get("rainfall", 80.0)))
+    # 1. Rainfall (mm)
+    rainfall = float(sensor.get("rainfall_mm", sensor.get("rainfall", 32.0)))
 
-    # 2. Drainage Capacity (mm/h)
-    # If not in sensor_data, scale from asset health_index (0.0 - 100.0) -> (10.0 - 100.0)
-    drainage_cap = float(sensor.get("drainage_capacity_m3s", sensor.get("drainage_capacity", max(10.0, health_idx))))
+    # 2. Inundation depth (inches)
+    depth = float(sensor.get("inundation_depth_inches", sensor.get("depth", max(4.0, (100.0 - health_idx) / 5.0))))
 
-    # 3. Population Impact (count)
-    # Default to criticality_score * 10,000 if omitted
-    population = int(sensor.get("population", sensor.get("population_density", max(5000, int(crit_score * 10000)))))
+    # 3. Hazard Category
+    hazard = str(sensor.get("hazard_category", "HIGH" if crit_score >= 4.0 else "MODERATE")).upper()
 
-    # 4. Traffic Index (0.0 to 100.0)
-    traffic = float(sensor.get("traffic", sensor.get("traffic_index", min(100.0, crit_score * 10.0))))
-
-    # 5. Road Condition (1.0 to 10.0)
-    # Scale from health_index (100 -> 10.0, 50 -> 5.0)
-    road_cond = float(sensor.get("road_condition", max(1.0, min(10.0, health_idx / 10.0))))
-
-    # 6. Critical Infrastructure Count (1 to 20)
-    crit_infra = int(sensor.get("critical_infrastructure", max(1, int(crit_score))))
-
-    # 7 & 8. Geolocation
-    lat = float(asset_dict.get("latitude", 37.7749))
-    lon = float(asset_dict.get("longitude", -122.4194))
+    # 4 & 5. Geolocation
+    lat = float(asset_dict.get("latitude", 13.0450))
+    lon = float(asset_dict.get("longitude", 80.2100))
 
     return {
         "zone_id": asset_id,
         "zone_name": name,
-        "rainfall": rainfall,
-        "drainage_capacity": drainage_cap,
-        "population": population,
-        "traffic": traffic,
-        "road_condition": road_cond,
-        "critical_infrastructure": crit_infra,
+        "rainfall_mm": rainfall,
+        "inundation_depth_inches": depth,
+        "hazard_category": hazard,
+        "nearest_rainfall_station": "IMD_STATION",
+        "rainfall_station_dist_km": 2.5,
         "latitude": lat,
         "longitude": lon
     }
@@ -74,6 +61,9 @@ def agent_df_to_assessments_response(recommendations_df: pd.DataFrame) -> dict:
     Translates the 6-layer final DataFrame output of UrbanShieldAgent back into the 
     Backend 'assessments' JSON format expected by backend/services/agent_client.py.
     """
+    if recommendations_df is None or (isinstance(recommendations_df, pd.DataFrame) and recommendations_df.empty):
+        return {"source": "agent", "assessments": []}
+
     assessments = []
 
     for _, row in recommendations_df.iterrows():

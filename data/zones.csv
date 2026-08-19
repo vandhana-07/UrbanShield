@@ -1,13 +1,17 @@
-zone_id,zone_name,rainfall,drainage_capacity,population,traffic,road_condition,critical_infrastructure,latitude,longitude
-Z01,Downtown Commercial,85.5,40.0,45000,88.0,4.5,5,13.0827,80.2707
-Z02,Riverbank Residential,110.0,30.0,62000,65.0,3.2,3,13.0878,80.2785
-Z03,Industrial Estate,45.0,70.0,15000,70.0,6.8,8,13.0750,80.2600
-Z04,Tech Park North,60.0,60.0,35000,50.0,8.0,4,13.0950,80.2850
-Z05,Old Town Market,125.0,25.0,85000,95.0,2.5,6,13.0600,80.2500
-Z06,South Suburbs,30.0,80.0,28000,35.0,7.5,2,13.0400,80.2400
-Z07,East Coastal Belt,140.0,35.0,50000,75.0,3.8,4,13.0700,80.2950
-Z08,University District,75.0,50.0,40000,60.0,6.0,5,13.0500,80.2650
-Z09,West Highway Hub,95.0,45.0,22000,90.0,5.0,3,13.0800,80.2300
-Z10,Airport Enclave,50.0,90.0,18000,40.0,8.5,7,13.0300,80.2100
-Z11_ERR,Bad Sensor Zone,,40.0,12000,50.0,5.0,1,13.0900,80.2200
-Z12_ERR,Out of Bounds Zone,60.0,-10.0,15000,110.0,15.0,2,13.0920,80.2250
+zone_id,zone_name,latitude,longitude,inundation_depth_inches,hazard_category,rainfall_mm,nearest_rainfall_station,rainfall_station_dist_km,ground_remarks,data_source
+CHN-Z01,Velachery Lake Basin,12.978396,80.204198,18.0,VERY_HIGH,35.0,CHENNAI AP,4.01,completely inundated with flood water,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z02,Adyar River South Bank,12.998905,80.207447,15.0,VERY_HIGH,32.0,ANNA UTY ARG,3.28,completely inundated with flood water,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z03,T. Nagar Lowland Market,13.0425,80.233,12.0,HIGH,32.0,ANNA UTY ARG,3.6,water stagnant on main road,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z04,Tambaram Railway Underpass,12.9249,80.12,14.0,HIGH,49.0,TAMBARAM,2.17,railway station covered by flood,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z05,Taramani IT Corridor,12.9863,80.2432,9.0,MODERATE,30.0,TARAMANI ARG,0.0,partially inundated on sides of the road,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z06,Anna University Canal Basin,13.0102,80.2354,8.0,MODERATE,32.0,ANNA UTY ARG,0.0,partially flooded near campus,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z07,Jothi Nagar Flood Plain,13.180149,80.298886,16.0,VERY_HIGH,29.0,CHENNAI(N),9.14,GCC 2020 Hotspot - low-lying residential inundation,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z08,Rajaji Nagar Coastal Lowland,13.173009,80.292376,11.0,HIGH,29.0,CHENNAI(N),8.23,GCC 2020 Hotspot - canal backflow observed,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z09,Thirumalai Nagar Catchment,13.171351,80.213682,10.0,HIGH,32.0,RED HILLS,3.62,GCC 2020 Hotspot - water stagnation reported,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z10,Villivakkam MTH Road,13.103851,80.20611,7.5,MODERATE,29.0,CHENNAI(N),8.01,GCC 2020 Hotspot - stormwater drain backup,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z11,Red Hills Outfall Zone,13.199,80.196,6.5,MODERATE,32.0,RED HILLS,0.0,reservoir downstream overflow buffer,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z12,Poonamallee High Road,13.0474,80.0935,5.5,LOW,34.0,POONAMALLEE,0.0,minor roadside waterlogging,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z13,Marina Beach DGP Office,13.0425,80.2798,5.0,LOW,27.0,DGP OFFICE,0.0,"coastal drainage operational, surface runoff",OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z14,Chembarambakkam Spillway,13.0116,80.0575,13.5,HIGH,47.0,CHEMBARABAKKAM,0.0,high river discharge basin,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-Z15,Kolathur Balaji Nagar,13.114769,80.191336,9.5,MODERATE,32.0,RED HILLS,9.38,GCC 2020 Hotspot - residential street waterlogging,OpenCity / GCC Flooding Survey + IMD Weather Stations
+CHN-REC-01,Rajalakshmi Engineering College,13.009644,80.004336,0.0,LOW,47.0,CHEMBARABAKKAM,5.76,Critical Education Infrastructure (Thandalam campus) — Linked to nearest IMD Chembarambakkam Station (5.76 km),Official REC Campus Coordinates (Thandalam) + Linked IMD Chembarambakkam Observations

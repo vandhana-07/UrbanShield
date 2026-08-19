@@ -12,7 +12,7 @@ class Config:
     DEBUG = FLASK_ENV == "development"
     
     # Mock / Agent flags
-    MOCK_MODE = os.getenv("MOCK_MODE", "true").strip().lower() in ("true", "1", "yes")
+    MOCK_MODE = os.getenv("MOCK_MODE", "false").strip().lower() in ("true", "1", "yes")
     AGENT_URL = os.getenv("AGENT_URL", "http://localhost:8000").rstrip("/")
     AGENT_TIMEOUT_SECONDS = float(os.getenv("AGENT_TIMEOUT_SECONDS", "6.0"))
     

@@ -71,7 +71,8 @@ class RecommendLayer:
         """
         zone_name = row.get("zone_name", "Unknown Zone")
         risk_score = row.get("risk_score", 0.0)
-        pop = int(row.get("population", 0))
+        depth = row.get("inundation_depth_inches", "N/A")
+        hazard = row.get("hazard_category", "N/A")
         status = row.get("allocation_status", "SKIPPED")
         pumps = int(row.get("allocated_pumps", 0))
         crews = int(row.get("allocated_crews", 0))
@@ -82,29 +83,29 @@ class RecommendLayer:
         if status == "ALLOCATED":
             if action == "REPAIR & DISPATCH IMMEDIATELY":
                 return (
-                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, pop: {pop:,}). "
-                    f"ALLOCATED {pumps} pumps and {crews} crews (${cost:,.0f}) for immediate emergency deployment."
+                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, inundation: {depth}\", hazard: {hazard}). "
+                    f"ALLOCATED {pumps} heavy pumps and {crews} emergency crews (₹{cost:,.0f}) for immediate deployment."
                 )
             else:
                 return (
-                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, pop: {pop:,}). "
-                    f"ALLOCATED {pumps} pumps and {crews} crews (${cost:,.0f}) for active mitigation support."
+                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, inundation: {depth}\", hazard: {hazard}). "
+                    f"ALLOCATED {pumps} heavy pumps and {crews} emergency crews (₹{cost:,.0f}) for active mitigation support."
                 )
         else:  # SKIPPED
             if action == "ESCALATE FOR REINFORCEMENTS":
                 return (
-                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, pop: {pop:,}) but was SKIPPED due to resource limits ({reason}). "
-                    f"IMMEDIATE ESCALATION to city command required for emergency reinforcement crews/pumps."
+                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, inundation: {depth}\", hazard: {hazard}) but was SKIPPED due to resource limits ({reason}). "
+                    f"IMMEDIATE ESCALATION to Chennai city command required for emergency reinforcement crews/pumps."
                 )
             elif action == "INSPECT & MONITOR HIGH RISK":
                 return (
-                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, pop: {pop:,}) but remained unserviced due to constraint bounds. "
+                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, inundation: {depth}\", hazard: {hazard}) but remained unserviced due to constraint bounds. "
                     f"Dispatched mobile inspection units for roving field monitoring."
                 )
             else:
                 return (
-                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, pop: {pop:,}). "
-                    f"Retained on routine automated telemetry sensor monitoring with no resource dispatch required."
+                    f"{zone_name} presents {risk_desc} (risk: {risk_score:.2f}, inundation: {depth}\", hazard: {hazard}). "
+                    f"Retained on routine automated telemetry sensor monitoring with zero immediate intervention required."
                 )
 
     def generate_recommendations(self, allocated_df: pd.DataFrame) -> pd.DataFrame:

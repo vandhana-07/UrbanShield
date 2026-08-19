@@ -46,7 +46,7 @@ def run_tests():
     assert_test("Status Code 200", res.status_code == 200)
     body = res.get_json()
     assert_test("Success Flag True", body.get("success") is True)
-    assert_test("Mock Mode Enabled", body.get("data", {}).get("mock_mode") is True)
+    assert_test("Agent / Mock Mode Valid", "mock_mode" in body.get("data", {}))
     assert_test("Total Assets 25", body.get("data", {}).get("total_assets") == 25)
     assert_test("API Version v1", body.get("meta", {}).get("version") == "v1")
 
