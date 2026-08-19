@@ -65,6 +65,11 @@ st.markdown("""
         max-width: 310px !important;
     }
 
+    /* Suppress Streamlit Code Block Copy Buttons */
+    button[data-testid="stCopyButton"], button[title="Copy to clipboard"], .stCodeBlock button {
+        display: none !important;
+    }
+
     /* Keyframe Animations */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(6px); }
@@ -1104,19 +1109,21 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
         st.subheader("🤖 Six-Layer Intelligence Pipeline Architecture")
         st.caption("End-to-End Decision Flow: SENSE → PREDICT → PRIORITIZE → OPTIMIZE → RECOMMEND → SIMULATE")
 
-        st.code("""
-1. SENSE      : Ingests 192 OpenCity ground surveys, 53 GCC hotspots, 119 IMD stations with Haversine matching
-      ↓
-2. PREDICT    : Computes evidence-based risk_score (0.45*depth + 0.35*hazard + 0.20*rain*w_dist) + confidence
-      ↓
-3. PRIORITIZE : Deterministic Multi-Criteria Decision Analysis (MCDA) assigning transparent urgency tiers
-      ↓
-4. OPTIMIZE   : Google OR-Tools CP-SAT 0-1 Knapsack solver allocating pumps, rescue crews, and ₹ INR budget
-      ↓
-5. RECOMMEND  : Generates auditable operational directives (e.g. REPAIR & DISPATCH) and natural language briefings
-      ↓
-6. SIMULATE   : In-memory crisis scenario engine testing deluge surges and budget contractions without DB mutation
-        """, language="text")
+        st.markdown("""
+            <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 18px 22px; margin-bottom: 1.2rem; font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; line-height: 1.7; color: #E2E8F0; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                <div><span style="color: #38BDF8; font-weight: 700;">1. SENSE</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: Ingests 192 OpenCity ground surveys, 53 GCC hotspots, 119 IMD stations with Haversine matching</div>
+                <div style="color: #64748B; padding-left: 55px;">↓</div>
+                <div><span style="color: #818CF8; font-weight: 700;">2. PREDICT</span> &nbsp;&nbsp;&nbsp;: Computes evidence-based risk_score (0.45*depth + 0.35*hazard + 0.20*rain*w_dist) + confidence</div>
+                <div style="color: #64748B; padding-left: 55px;">↓</div>
+                <div><span style="color: #C084FC; font-weight: 700;">3. PRIORITIZE</span> : Deterministic Multi-Criteria Decision Analysis (MCDA) assigning transparent urgency tiers</div>
+                <div style="color: #64748B; padding-left: 55px;">↓</div>
+                <div><span style="color: #34D399; font-weight: 700;">4. OPTIMIZE</span> &nbsp;&nbsp;: Google OR-Tools CP-SAT 0-1 Knapsack solver allocating pumps, rescue crews, and ₹ INR budget</div>
+                <div style="color: #64748B; padding-left: 55px;">↓</div>
+                <div><span style="color: #FBBF24; font-weight: 700;">5. RECOMMEND</span> : Generates auditable operational directives (e.g. REPAIR & DISPATCH) and natural language briefings</div>
+                <div style="color: #64748B; padding-left: 55px;">↓</div>
+                <div><span style="color: #F87171; font-weight: 700;">6. SIMULATE</span> &nbsp;&nbsp;: In-memory crisis scenario engine testing deluge surges and budget contractions without DB mutation</div>
+            </div>
+        """, unsafe_allow_html=True)
 
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "1. SENSE", "2. PREDICT", "3. PRIORITIZE", "4. OPTIMIZE", "5. RECOMMEND", "6. SIMULATE"
