@@ -193,7 +193,7 @@ def run_tests():
     ]))
 
     # 15. Budget-Constrained Optimizer (Feature 2)
-    print("\n[16/16] Testing POST /api/optimize/allocate...")
+    print("\n[16/18] Testing POST /api/optimize/allocate...")
     # Unfiltered optimization
     opt_res = client.post("/api/optimize/allocate", json={"budget_limit": 1500000})
     assert_test("Optimizer Status Code 200", opt_res.status_code == 200)
@@ -214,6 +214,50 @@ def run_tests():
     # 400 Bad budget
     opt_bad = client.post("/api/optimize/allocate", json={"budget_limit": -500})
     assert_test("Negative budget returns 400", opt_bad.status_code == 400)
+
+    # 16. Resource Pools & Multi-Resource Allocation (Feature 3)
+    print("\n[17/18] Testing GET /api/resources & POST /api/zones/allocate-resources...")
+    res_pools = client.get("/api/resources")
+    assert_test("Resources Status Code 200", res_pools.status_code == 200)
+    pools_data = res_pools.get_json().get("data", [])
+    assert_test("Resource pools seeded >= 3", len(pools_data) >= 3)
+    assert_test("Resource contains available_quantity", "available_quantity" in pools_data[0])
+
+    # Allocate resources
+    alloc_res = client.post("/api/zones/allocate-resources", json={
+        "pumps_available": 20,
+        "crews_available": 15,
+        "budget_available": 800000
+    })
+    assert_test("Resource Allocation Status Code 200", alloc_res.status_code == 200)
+    alloc_data = alloc_res.get_json().get("data", {})
+    assert_test("Allocations list returned", len(alloc_data.get("allocations", [])) >= 1)
+    assert_test("Pumps allocated properly", alloc_data.get("total_pumps_allocated", 0) > 0)
+    assert_test("Crews allocated properly", alloc_data.get("total_crews_allocated", 0) > 0)
+    assert_test("Budget allocated properly", alloc_data.get("total_budget_allocated", 0) > 0)
+
+    # 17. Zone Flood Risk Prediction - SENSE stage (Feature 4)
+    print("\n[18/18] Testing POST /api/zones/predict-flood-risk...")
+    flood_res = client.post("/api/zones/predict-flood-risk", json={
+        "zone": "District 1 - Waterfront",
+        "rainfall_mm": 85.0,
+        "drainage_capacity_pct": 40.0,
+        "population": 120000,
+        "traffic_index": 0.7
+    })
+    assert_test("Flood Prediction Status Code 200", flood_res.status_code == 200)
+    flood_data = flood_res.get_json().get("data", {})
+    assert_test("Flood Risk Score Calculated", 0.0 <= flood_data.get("flood_risk_score", -1) <= 1.0)
+    assert_test("Risk Level Present", flood_data.get("risk_level") in ["low", "medium", "high", "catastrophic"])
+    assert_test("Contributing Factors Present", "rainfall_factor" in flood_data.get("contributing_factors", {}))
+
+    # 400 Bad Drainage Capacity
+    flood_bad = client.post("/api/zones/predict-flood-risk", json={
+        "zone": "District 1",
+        "rainfall_mm": 50.0,
+        "drainage_capacity_pct": 150.0
+    })
+    assert_test("Drainage pct > 100 returns 400", flood_bad.status_code == 400)
 
     print("\n" + "=" * 60)
     print(f"  ALL {passed}/{total} TESTS PASSED SUCCESSFULLY! (100% COVERAGE)")

@@ -7,7 +7,7 @@
 [![Framework](https://img.shields.io/badge/Framework-Flask%203.0-green.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Database](https://img.shields.io/badge/Database-SQLite%20%2B%20SQLAlchemy-lightgrey.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![API Version](https://img.shields.io/badge/API-v1.0%20(REST)-orange.svg)](http://localhost:5000/api)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-55%2F55%20Passed%20(100%25)-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-68%2F68%20Passed%20(100%25)-brightgreen.svg)]()
 [![CORS](https://img.shields.io/badge/CORS-Enabled%20(All%20Origins)-success.svg)]()
 
 ---
@@ -599,6 +599,121 @@ curl -X POST http://localhost:5000/api/optimize/allocate \
     ]
   },
   "meta": { "source": "mock", "timestamp": "2026-08-19T14:45:00Z", "version": "v1" }
+}
+```
+
+---
+
+### 9. Emergency Resource Pools & Multi-Resource Allocation
+
+#### `GET /api/resources`
+Lists all available municipal emergency resource inventory pools (pumps, repair crews, capital reserve) and their remaining unassigned capacities.
+
+```bash
+curl -X GET http://localhost:5000/api/resources
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "resource_type": "pump",
+      "total_quantity": 25.0,
+      "allocated_quantity": 0.0,
+      "available_quantity": 25.0
+    },
+    {
+      "id": 2,
+      "resource_type": "crew",
+      "total_quantity": 18.0,
+      "allocated_quantity": 0.0,
+      "available_quantity": 18.0
+    }
+  ],
+  "meta": { "source": "mock", "timestamp": "2026-08-19T14:50:00Z", "version": "v1" }
+}
+```
+
+#### `POST /api/zones/allocate-resources`
+Statelessly distributes limited countable emergency assets (pumps, crews, budget) proportionally across municipal zones ordered by urgency tier and critical asset density.
+
+```bash
+curl -X POST http://localhost:5000/api/zones/allocate-resources \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pumps_available": 20,
+    "crews_available": 15,
+    "budget_available": 800000
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "allocations": [
+      {
+        "zone": "District 1 - Waterfront",
+        "priority_tier": "P1_URGENT",
+        "critical_asset_count": 3,
+        "avg_risk_score": 0.812,
+        "pumps_allocated": 9,
+        "crews_allocated": 7,
+        "budget_allocated": 750000.0,
+        "recommendations_funded": [ ... ]
+      }
+    ],
+    "total_pumps_allocated": 20,
+    "total_crews_allocated": 15,
+    "total_budget_allocated": 750000.0,
+    "unallocated_pumps": 0,
+    "unallocated_crews": 0,
+    "unallocated_budget": 50000.0
+  },
+  "meta": { "source": "mock", "timestamp": "2026-08-19T14:50:00Z", "version": "v1" }
+}
+```
+
+---
+
+### 10. SENSE-Stage Zone Flood Risk Prediction
+
+#### `POST /api/zones/predict-flood-risk`
+Statelessly computes a deterministic composite flood risk score (0.0 to 1.0) and factor attribution based on live meteorological rainfall, drainage capacity deficit, population density, and traffic stress.
+
+```bash
+curl -X POST http://localhost:5000/api/zones/predict-flood-risk \
+  -H "Content-Type: application/json" \
+  -d '{
+    "zone": "District 1 - Waterfront",
+    "rainfall_mm": 85.0,
+    "drainage_capacity_pct": 40.0,
+    "population": 120000,
+    "traffic_index": 0.7
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "zone": "District 1 - Waterfront",
+    "flood_risk_score": 0.73,
+    "risk_level": "high",
+    "contributing_factors": {
+      "rainfall_factor": 0.71,
+      "drainage_deficit_factor": 0.60,
+      "population_exposure_factor": 0.60,
+      "traffic_factor": 0.70
+    },
+    "source": "mock"
+  },
+  "meta": { "source": "mock", "timestamp": "2026-08-19T14:50:00Z", "version": "v1" }
 }
 ```
 

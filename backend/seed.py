@@ -6,7 +6,7 @@ associated risk assessments, composite priority rankings, and actionable AI reco
 
 from app import create_app
 from database import db
-from models import Asset, RiskAssessment, PriorityRanking, Recommendation, Simulation
+from models import Asset, RiskAssessment, PriorityRanking, Recommendation, Simulation, Resource
 from services import mock_engine
 
 SAMPLE_ASSETS = [
@@ -456,8 +456,18 @@ def seed_database():
         )
         db.session.add(sim_record)
 
+        # Seed emergency resource pools
+        print("Seeding emergency resource pools...")
+        resources = [
+            Resource(resource_type="pump", total_quantity=25.0, allocated_quantity=0.0),
+            Resource(resource_type="crew", total_quantity=18.0, allocated_quantity=0.0),
+            Resource(resource_type="budget_usd", total_quantity=3500000.0, allocated_quantity=0.0)
+        ]
+        for r in resources:
+            db.session.add(r)
+
         db.session.commit()
-        print("Database seeded successfully with 25 assets, 25 risks, 25 priorities, 25 recommendations, and 1 simulation!")
+        print("Database seeded successfully with 25 assets, 25 risks, 25 priorities, 25 recommendations, 1 simulation, and 3 resource pools!")
 
 
 if __name__ == "__main__":

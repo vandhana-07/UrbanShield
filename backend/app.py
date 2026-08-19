@@ -35,6 +35,7 @@ def create_app(config_class=Config):
     from routes.simulations import simulations_bp
     from routes.zones import zones_bp
     from routes.optimize import optimize_bp
+    from routes.resources import resources_bp
 
     api_prefix = config_class.API_PREFIX  # "/api"
     app.register_blueprint(system_bp, url_prefix=api_prefix)
@@ -45,6 +46,7 @@ def create_app(config_class=Config):
     app.register_blueprint(simulations_bp, url_prefix=api_prefix)
     app.register_blueprint(zones_bp, url_prefix=api_prefix)
     app.register_blueprint(optimize_bp, url_prefix=api_prefix)
+    app.register_blueprint(resources_bp, url_prefix=api_prefix)
 
     # Centralized HTTP Error Handlers
     @app.errorhandler(400)

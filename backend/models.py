@@ -174,3 +174,23 @@ class Simulation(db.Model):
             "source": self.source,
             "executed_at": self.executed_at.isoformat() if self.executed_at else None,
         }
+
+
+class Resource(db.Model):
+    __tablename__ = "resources"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    resource_type = db.Column(db.String(64), nullable=False, unique=True)  # e.g., "pump", "crew", "budget_usd"
+    total_quantity = db.Column(db.Float, nullable=False, default=0.0)
+    allocated_quantity = db.Column(db.Float, nullable=False, default=0.0)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "resource_type": self.resource_type,
+            "total_quantity": round(self.total_quantity, 2),
+            "allocated_quantity": round(self.allocated_quantity, 2),
+            "available_quantity": round(max(0.0, self.total_quantity - self.allocated_quantity), 2),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
