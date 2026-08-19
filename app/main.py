@@ -51,8 +51,18 @@ st.markdown("""
         letter-spacing: -0.02em;
     }
 
-    code, pre {
-        font-family: 'JetBrains Mono', monospace;
+    /* Tighten container padding to remove wasted whitespace on left/right */
+    .main .block-container, div[data-testid="stAppViewBlockContainer"] {
+        max-width: 100% !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1.8rem !important;
+        padding-right: 1.8rem !important;
+    }
+
+    section[data-testid="stSidebar"] {
+        min-width: 270px !important;
+        max-width: 310px !important;
     }
 
     /* Keyframe Animations */
