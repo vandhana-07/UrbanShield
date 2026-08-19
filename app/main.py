@@ -131,6 +131,39 @@ st.markdown("""
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
+    /* Sidebar Navigation Overhaul */
+    section[data-testid="stSidebar"] {
+        background-color: #0B0F17 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] {
+        gap: 5px;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 9px;
+        padding: 7px 11px;
+        margin-bottom: 2px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        font-size: 0.88rem;
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background: rgba(56, 189, 248, 0.12);
+        border-color: rgba(56, 189, 248, 0.4);
+        transform: translateX(3px);
+    }
+
+    section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(99, 102, 241, 0.22) 100%) !important;
+        border-color: #38BDF8 !important;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+    }
+
     .tradeoff-card {
         background: rgba(30, 41, 59, 0.7);
         border: 1px solid rgba(56, 189, 248, 0.2);
@@ -359,23 +392,36 @@ def main():
     # SIDEBAR NAVIGATION & SYSTEM TELEMETRY
     # ------------------------------------------------------------------
     with st.sidebar:
-        st.markdown("### 🎮 Control Center")
+        st.markdown("""
+            <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #38BDF8; font-weight: 700;">COMMAND SYSTEM</div>
+                <div style="font-size: 1.18rem; font-weight: 800; color: #F8FAFC; margin: 2px 0;">🛡️ Control Center</div>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: #34D399; font-weight: 600;">
+                    <span style="height: 7px; width: 7px; background-color: #34D399; border-radius: 50%; display: inline-block;"></span>
+                    Live Decision Support Active
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<p style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; font-weight: 700; margin-bottom: 6px;'>NAVIGATION</p>", unsafe_allow_html=True)
+        
         nav_option = st.radio(
-            "Command View Selection",
+            "Navigation Menu",
             [
-                "🚨 COMMANDER MODE",
-                "🗺️ Live Geospatial Risk Map",
-                "⚖️ Resource Allocation & Optimization",
-                "🧠 Why Did UrbanShield Choose This?",
-                "🧪 What-If Crisis Scenario Simulator",
-                "🎓 REC Infrastructure Profile & Twin",
-                "🤖 Six-Layer Pipeline Architecture",
-                "🌐 Real Data Sources & Provenance"
-            ]
+                "🚨 Commander Briefing",
+                "🗺️ Geospatial Map",
+                "⚖️ Resource Optimization",
+                "🧠 Explainable AI (Why?)",
+                "🧪 What-If Simulator",
+                "🎓 REC Digital Twin",
+                "🤖 6-Layer Architecture",
+                "🌐 Data Provenance"
+            ],
+            label_visibility="collapsed"
         )
 
-        st.markdown("---")
-        st.markdown("### 📡 System Telemetry")
+        st.markdown("<hr style='border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0 12px 0;'>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; font-weight: 700; margin-bottom: 8px;'>TELEMETRY STATUS</p>", unsafe_allow_html=True)
         
         # Telemetry probes
         backend_online = False
@@ -392,15 +438,19 @@ def main():
         except Exception:
             agent_online = False
 
-        st.markdown(f"**Backend API:** {'🟢 ONLINE (Port 5000)' if backend_online else '🟡 LOCAL IN-PROCESS'}")
-        st.markdown(f"**AI Agent Server:** {'🟢 LIVE (Port 8000)' if agent_online else '🟡 LOCAL IN-PROCESS'}")
-        st.markdown("**Constraint Solver:** 🟢 Google OR-Tools CP-SAT")
-        st.markdown("**Currency Standard:** 🇮🇳 Indian Rupees (₹ INR)")
+        st.markdown(f"""
+            <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.6; color: #CBD5E1;">
+                <div><b>Backend API:</b> <span style="color: {'#34D399' if backend_online else '#FBBF24'};">● {'ONLINE (5000)' if backend_online else 'LOCAL'}</span></div>
+                <div><b>AI Agent:</b> <span style="color: {'#34D399' if agent_online else '#FBBF24'};">● {'LIVE (8000)' if agent_online else 'LOCAL'}</span></div>
+                <div><b>Solver:</b> <span style="color: #38BDF8;">CP-SAT Knapsack</span></div>
+                <div><b>Currency:</b> <span style="color: #A78BFA;">INR (₹)</span></div>
+            </div>
+        """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------------
     # VIEW 1: 🚨 COMMANDER MODE (OPERATIONAL SITUATION BRIEFING)
     # ------------------------------------------------------------------
-    if nav_option == "🚨 COMMANDER MODE":
+    if nav_option == "🚨 Commander Briefing":
         st.subheader("🚨 COMMANDER MODE — Operational Decision Support & Incident Directives")
         st.caption("Real-Time Incident Briefing & Actionable Resource Orders for Greater Chennai Emergency Incident Commanders")
 
@@ -486,7 +536,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 2: 🗺️ LIVE GEOSPATIAL RISK MAP & EVIDENCE TRACE
     # ------------------------------------------------------------------
-    elif nav_option == "🗺️ Live Geospatial Risk Map":
+    elif nav_option == "🗺️ Geospatial Map":
         st.subheader("🗺️ Real Chennai Flood Inundation & Geospatial Risk Map")
         st.caption("Spatially matched to 192 OpenCity ground depth surveys, 53 GCC hotspots, and IMD meteorological stations.")
 
@@ -518,7 +568,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 3: ⚖️ RESOURCE ALLOCATION & OPTIMIZATION
     # ------------------------------------------------------------------
-    elif nav_option == "⚖️ Resource Allocation & Optimization":
+    elif nav_option == "⚖️ Resource Optimization":
         st.subheader("⚖️ Resource-Constrained Optimization (Google OR-Tools CP-SAT)")
         st.caption("Solves 0-1 Multi-Dimensional Knapsack problem under discrete pump, rescue crew, and budget bounds.")
 
@@ -548,7 +598,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 4: 🧠 WHY DID URBANSHIELD CHOOSE THIS? (EXPLAINABLE AI)
     # ------------------------------------------------------------------
-    elif nav_option == "🧠 Why Did UrbanShield Choose This?":
+    elif nav_option == "🧠 Explainable AI (Why?)":
         st.subheader("🧠 Explainable Optimization — Why UrbanShield Made This Decision")
         st.caption("Mathematical & Operational Explainability of the Google OR-Tools CP-SAT Knapsack Tradeoff")
 
@@ -607,7 +657,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 5: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR
     # ------------------------------------------------------------------
-    elif nav_option == "🧪 What-If Crisis Scenario Simulator":
+    elif nav_option == "🧪 What-If Simulator":
         st.subheader("🧪 What-If Crisis Scenario Simulator")
         st.caption("Test emergency resource overrides in-memory without database mutation before deploying real-world personnel.")
         st.warning("⚠️ **Notice:** These values are generated strictly for interactive 'What-If' simulation testing. They do NOT represent historical observations.")
@@ -664,7 +714,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 6: 🎓 REC INFRASTRUCTURE PROFILE & DIGITAL TWIN
     # ------------------------------------------------------------------
-    elif nav_option == "🎓 REC Infrastructure Profile & Twin":
+    elif nav_option == "🎓 REC Digital Twin":
         st.subheader("🎓 Critical Infrastructure Profile: Rajalakshmi Engineering College (REC)")
         st.caption("Digital Twin & Geospatial Evidence Attribution for Higher-Education Campus Infrastructure")
 
@@ -712,7 +762,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 7: 🤖 SIX-LAYER PIPELINE ARCHITECTURE
     # ------------------------------------------------------------------
-    elif nav_option == "🤖 Six-Layer Pipeline Architecture":
+    elif nav_option == "🤖 6-Layer Architecture":
         st.subheader("🤖 Six-Layer Intelligence Pipeline Architecture")
         st.caption("End-to-End Decision Flow: SENSE → PREDICT → PRIORITIZE → OPTIMIZE → RECOMMEND → SIMULATE")
 
@@ -765,7 +815,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
     # ------------------------------------------------------------------
     # VIEW 8: 🌐 REAL DATA SOURCES & PROVENANCE
     # ------------------------------------------------------------------
-    elif nav_option == "🌐 Real Data Sources & Provenance":
+    elif nav_option == "🌐 Data Provenance":
         st.subheader("🌐 Real Chennai Data Sources & Provenance")
         st.warning(
             "⚠️ **Disclaimer:** UrbanShield uses publicly available historical Chennai rainfall, inundation and flood-hazard observations. "
