@@ -142,6 +142,7 @@ def run_simulation():
 
 
 if __name__ == "__main__":
-    port = 8000
+    import os
+    port = int(os.getenv("PORT", 8000))
     logger.info(f"Starting UrbanShield Agent HTTP Server on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)

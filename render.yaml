@@ -1,0 +1,42 @@
+services:
+  # 1. Streamlit Interactive Command Center Frontend
+  - type: web
+    name: urbanshield-frontend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app/main.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: BACKEND_URL
+        value: https://urbanshield-backend.onrender.com/api
+      - key: AGENT_URL
+        value: https://urbanshield-agent.onrender.com
+
+  # 2. Flask REST Backend API
+  - type: web
+    name: urbanshield-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "backend.app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: MOCK_MODE
+        value: "false"
+      - key: AGENT_URL
+        value: https://urbanshield-agent.onrender.com
+
+  # 3. AI Agent Server (OR-Tools, MCDA & Scenario Engine)
+  - type: web
+    name: urbanshield-agent
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "agent.server:app" --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
