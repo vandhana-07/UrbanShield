@@ -201,6 +201,7 @@ def run_tests():
     assert_test("Optimizer selected recommendations", opt_data.get("recommendations_selected", 0) >= 1)
     assert_test("Optimizer stayed within budget", opt_data.get("total_cost", 0) <= 1500000)
     assert_test("Optimizer calculated risk reduction", opt_data.get("total_risk_reduction_achieved_pct", 0) > 0)
+    assert_test("OR-Tools solver utilized", opt_data.get("optimization_method") == "or_tools")
 
     # Filtered by zone
     opt_filtered = client.post("/api/optimize/allocate", json={
@@ -235,8 +236,9 @@ def run_tests():
     assert_test("Pumps allocated properly", alloc_data.get("total_pumps_allocated", 0) > 0)
     assert_test("Crews allocated properly", alloc_data.get("total_crews_allocated", 0) > 0)
     assert_test("Budget allocated properly", alloc_data.get("total_budget_allocated", 0) > 0)
+    assert_test("OR-Tools multi-resource optimization used", alloc_data.get("optimization_method") == "or_tools")
 
-    # 17. Zone Flood Risk Prediction - SENSE stage (Feature 4)
+    # 17. Zone Flood Risk Prediction - SENSE stage (Feature 4 - Scikit-Learn ML)
     print("\n[18/18] Testing POST /api/zones/predict-flood-risk...")
     flood_res = client.post("/api/zones/predict-flood-risk", json={
         "zone": "District 1 - Waterfront",
@@ -250,6 +252,7 @@ def run_tests():
     assert_test("Flood Risk Score Calculated", 0.0 <= flood_data.get("flood_risk_score", -1) <= 1.0)
     assert_test("Risk Level Present", flood_data.get("risk_level") in ["low", "medium", "high", "catastrophic"])
     assert_test("Contributing Factors Present", "rainfall_factor" in flood_data.get("contributing_factors", {}))
+    assert_test("Scikit-Learn ML Model Source Verified", flood_data.get("source") in ["ml_model", "mock"])
 
     # 400 Bad Drainage Capacity
     flood_bad = client.post("/api/zones/predict-flood-risk", json={

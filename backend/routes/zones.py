@@ -1,6 +1,8 @@
 from flask import Blueprint, request
 from models import Asset, RiskAssessment, PriorityRanking, Recommendation
 from routes import make_response, make_error
+from services.ml_model import ml_service
+from services.optimizer_service import optimizer_service
 
 zones_bp = Blueprint("zones", __name__)
 
@@ -71,7 +73,7 @@ def compute_zones_summary_data():
             "priority_weight": z["highest_priority_weight"]
         })
 
-    # Sort zones by critical count descending, then avg risk score descending
+    # Sort zones by priority weight descending, then critical count descending
     zones_list.sort(key=lambda x: (x["priority_weight"], x["critical_asset_count"], x["avg_risk_score"]), reverse=True)
     return zones_list
 
@@ -83,7 +85,6 @@ def get_zones_summary():
     """
     try:
         zones_list = compute_zones_summary_data()
-        # Clean internal priority_weight before returning
         clean_zones = [
             {k: v for k, v in z.items() if k != "priority_weight"}
             for z in zones_list
@@ -97,7 +98,7 @@ def get_zones_summary():
 def allocate_resources_to_zones():
     """
     Statelessly allocates limited countable resources (pumps, crews, budget)
-    across municipal zones ordered by urgency and critical asset density.
+    across municipal zones using Google OR-Tools integer programming.
     """
     try:
         payload = request.get_json(silent=True)
@@ -115,88 +116,8 @@ def allocate_resources_to_zones():
             return make_error("VALIDATION_ERROR", "Resource quantities must be non-negative", status_code=400)
 
         zones_list = compute_zones_summary_data()
-        if not zones_list:
-            return make_response({
-                "allocations": [],
-                "total_pumps_allocated": 0,
-                "total_crews_allocated": 0,
-                "total_budget_allocated": 0.0,
-                "unallocated_pumps": pumps_avail,
-                "unallocated_crews": crews_avail,
-                "unallocated_budget": budget_avail
-            }, source="mock")
-
-        remaining_pumps = pumps_avail
-        remaining_crews = crews_avail
-        remaining_budget = budget_avail
-
-        total_critical = sum(z["critical_asset_count"] for z in zones_list) or 1
-
-        allocations = []
-        for z in zones_list:
-            # Proportional pump and crew allocation based on critical asset concentration and risk
-            zone_crit = z["critical_asset_count"]
-            zone_risk = z["avg_risk_score"]
-
-            if zone_crit > 0 or zone_risk >= 0.5:
-                # Proportional share
-                pumps_share = int(round((zone_crit / total_critical) * pumps_avail)) if total_critical > 0 else 1
-                crews_share = int(round((zone_crit / total_critical) * crews_avail)) if total_critical > 0 else 1
-
-                pumps_to_assign = min(remaining_pumps, max(1, pumps_share)) if remaining_pumps > 0 else 0
-                crews_to_assign = min(remaining_crews, max(1, crews_share)) if remaining_crews > 0 else 0
-            else:
-                pumps_to_assign = 0
-                crews_to_assign = 0
-
-            remaining_pumps -= pumps_to_assign
-            remaining_crews -= crews_to_assign
-
-            # Budget allocation to pending recommendations in this zone
-            zone_recs = Recommendation.query.filter(
-                Recommendation.status == "pending"
-            ).join(Asset).filter(Asset.zone == z["zone"]).all()
-
-            # Value-ratio knapsack for zone recommendations
-            scored_recs = []
-            for r in zone_recs:
-                cost = max(1.0, r.estimated_cost)
-                ratio = r.expected_risk_reduction_pct / cost
-                scored_recs.append((r, ratio))
-            scored_recs.sort(key=lambda x: x[1], reverse=True)
-
-            zone_budget_spent = 0.0
-            funded_recs = []
-            for rec, _ in scored_recs:
-                if rec.estimated_cost <= remaining_budget:
-                    funded_recs.append(rec.to_dict())
-                    remaining_budget -= rec.estimated_cost
-                    zone_budget_spent += rec.estimated_cost
-
-            allocations.append({
-                "zone": z["zone"],
-                "priority_tier": z["highest_priority_tier"],
-                "critical_asset_count": z["critical_asset_count"],
-                "avg_risk_score": z["avg_risk_score"],
-                "pumps_allocated": int(pumps_to_assign),
-                "crews_allocated": int(crews_to_assign),
-                "budget_allocated": round(zone_budget_spent, 2),
-                "recommendations_funded": funded_recs
-            })
-
-        total_pumps_alloc = int(pumps_avail - remaining_pumps)
-        total_crews_alloc = int(crews_avail - remaining_crews)
-        total_budget_alloc = round(budget_avail - remaining_budget, 2)
-
-        data = {
-            "allocations": allocations,
-            "total_pumps_allocated": total_pumps_alloc,
-            "total_crews_allocated": total_crews_alloc,
-            "total_budget_allocated": total_budget_alloc,
-            "unallocated_pumps": int(remaining_pumps),
-            "unallocated_crews": int(remaining_crews),
-            "unallocated_budget": round(remaining_budget, 2)
-        }
+        data = optimizer_service.solve_multi_resource_allocation(zones_list, pumps_avail, crews_avail, budget_avail)
+        
         return make_response(data, source="mock")
     except Exception as exc:
         return make_error("INTERNAL_ERROR", "Failed to allocate resources to zones", details=[str(exc)], status_code=500)
@@ -205,7 +126,7 @@ def allocate_resources_to_zones():
 @zones_bp.route("/zones/predict-flood-risk", methods=["POST"])
 def predict_zone_flood_risk():
     """
-    SENSE Stage: Computes a deterministic flood risk score and contributing factors for a zone.
+    SENSE Stage: Computes a machine-learning-driven flood risk score using Scikit-Learn RandomForest.
     """
     try:
         payload = request.get_json(silent=True)
@@ -228,36 +149,16 @@ def predict_zone_flood_risk():
         if not (0.0 <= drainage_cap <= 100.0):
             return make_error("VALIDATION_ERROR", "drainage_capacity_pct must be between 0.0 and 100.0", status_code=400)
 
-        # Factor calculations
-        rainfall_factor = round(min(1.0, max(0.0, rainfall_mm / 120.0)), 2)
-        drainage_deficit_factor = round(min(1.0, max(0.0, (100.0 - drainage_cap) / 100.0)), 2)
-        population_factor = round(min(1.0, max(0.0, population / 200000.0)), 2)
-        traffic_factor = round(min(1.0, max(0.0, traffic_index)), 2)
-
-        raw_score = (rainfall_factor * 0.45) + (drainage_deficit_factor * 0.30) + (population_factor * 0.15) + (traffic_factor * 0.10)
-        flood_risk_score = round(min(0.98, max(0.05, raw_score)), 2)
-
-        if flood_risk_score >= 0.82:
-            risk_level = "catastrophic"
-        elif flood_risk_score >= 0.62:
-            risk_level = "high"
-        elif flood_risk_score >= 0.38:
-            risk_level = "medium"
-        else:
-            risk_level = "low"
-
-        result = {
-            "zone": zone,
-            "flood_risk_score": flood_risk_score,
-            "risk_level": risk_level,
-            "contributing_factors": {
-                "rainfall_factor": rainfall_factor,
-                "drainage_deficit_factor": drainage_deficit_factor,
-                "population_exposure_factor": population_factor,
-                "traffic_factor": traffic_factor
-            },
-            "source": "mock"
-        }
-        return make_response(result, source="mock")
+        # Call Scikit-Learn Random Forest ML Model
+        result = ml_service.predict_flood_risk(
+            zone_name=zone,
+            rainfall_mm=rainfall_mm,
+            drainage_capacity_pct=drainage_cap,
+            population=population,
+            traffic_index=traffic_index
+        )
+        
+        source = result.get("source", "ml_model")
+        return make_response(result, source=source)
     except Exception as exc:
         return make_error("INTERNAL_ERROR", "Failed to predict flood risk", details=[str(exc)], status_code=500)

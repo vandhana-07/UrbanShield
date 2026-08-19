@@ -7,7 +7,7 @@
 [![Framework](https://img.shields.io/badge/Framework-Flask%203.0-green.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Database](https://img.shields.io/badge/Database-SQLite%20%2B%20SQLAlchemy-lightgrey.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![API Version](https://img.shields.io/badge/API-v1.0%20(REST)-orange.svg)](http://localhost:5000/api)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-68%2F68%20Passed%20(100%25)-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-71%2F71%20Passed%20(100%25)-brightgreen.svg)]()
 [![CORS](https://img.shields.io/badge/CORS-Enabled%20(All%20Origins)-success.svg)]()
 
 ---
