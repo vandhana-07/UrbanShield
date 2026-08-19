@@ -28,7 +28,7 @@ logger = logging.getLogger("UrbanShield.Optimize")
 # Default Global Emergency Resource Pool Capacities
 DEFAULT_TOTAL_PUMPS = 6        # Total portable heavy pump units available
 DEFAULT_TOTAL_CREWS = 4        # Total disaster response crew teams available
-DEFAULT_TOTAL_BUDGET = 500000.0  # Total emergency operating budget cap ($)
+DEFAULT_TOTAL_BUDGET = 500000.0  # Total emergency operating budget cap (₹ INR)
 
 
 class OptimizeLayer:
@@ -46,7 +46,7 @@ class OptimizeLayer:
         Rules:
         - Pumps: 2 heavy pumps if inundation_depth >= 12.0 inches or rainfall >= 40mm, else 1 pump.
         - Crews: 2 emergency crews if hazard_category is VERY_HIGH/HIGH or inundation_depth >= 14.0 inches, else 1 crew.
-        - Cost: Base dispatch ($30,000) + (pumps * $40,000) + (crews * $35,000).
+        - Cost: Base dispatch (₹30,000) + (pumps * ₹40,000) + (crews * ₹35,000).
         """
         depth = float(row.get("inundation_depth_inches", 6.0))
         hazard = str(row.get("hazard_category", "MODERATE")).strip().upper()
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     print(f" Priority Coverage: {summary['total_covered_score']:.4f} / {summary['total_possible_score']:.4f} ({summary['score_coverage_percentage']}%)")
     print(f" Pumps Deployed   : {summary['pumps_deployed']} / {summary['total_pumps_capacity']} units")
     print(f" Crews Deployed   : {summary['crews_deployed']} / {summary['total_crews_capacity']} teams")
-    print(f" Budget Spent     : ${summary['budget_spent']:,.2f} / ${summary['total_budget_capacity']:,.2f}")
+    print(f" Budget Spent     : ₹{summary['budget_spent']:,.2f} / ₹{summary['total_budget_capacity']:,.2f}")
     print("=" * 80)
 
     output_cols = ["priority_rank", "zone_id", "zone_name", "priority_score", "allocation_status", "allocation_reason"]

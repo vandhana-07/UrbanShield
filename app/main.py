@@ -967,17 +967,20 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                 </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 🔍 Zone-by-Zone Explainability Inspector")
-        if not active_df.empty:
-            selected_zone_name = st.selectbox("Select Zone to Inspect Reasoning", active_df["zone_name"].tolist())
-            z_row = active_df[active_df["zone_name"] == selected_zone_name].iloc[0]
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### 🔍 Zone-by-Zone Explainability Inspector")
+            if not active_df.empty:
+                selected_zone_name = st.selectbox("Select Zone to Inspect Reasoning", active_df["zone_name"].tolist())
+                z_row = active_df[active_df["zone_name"] == selected_zone_name].iloc[0]
 
-            st.info(f"**Zone Decision Analysis for {selected_zone_name} [{z_row['zone_id']}]:**\n\n"
-                    f"• **Allocation Status:** `{z_row['allocation_status']}`\n\n"
-                    f"• **Priority Score:** `{z_row['priority_score']:.4f}` (Rank {z_row['priority_rank']} of 16)\n\n"
-                    f"• **Mathematical Reason:** {z_row['allocation_reason']}\n\n"
-                    f"• **Dispatcher Briefing:** {z_row.get('executive_summary', 'Routine surveillance.')}")
+                math_reason = str(z_row['allocation_reason']).replace("$", "₹")
+                dispatcher_brief = str(z_row.get('executive_summary', 'Routine surveillance.')).replace("$", "₹")
+
+                st.info(f"**Zone Decision Analysis for {selected_zone_name} [{z_row['zone_id']}]:**\n\n"
+                        f"• **Allocation Status:** `{z_row['allocation_status']}`\n\n"
+                        f"• **Priority Score:** `{z_row['priority_score']:.4f}` (Rank {z_row['priority_rank']} of 16)\n\n"
+                        f"• **Mathematical Reason:** {math_reason}\n\n"
+                        f"• **Dispatcher Briefing:** {dispatcher_brief}")
 
     # ------------------------------------------------------------------
     # VIEW 6: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR

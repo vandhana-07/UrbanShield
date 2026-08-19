@@ -220,9 +220,9 @@ if __name__ == "__main__":
     base_rec_df, base_summary, base_zone_state = sim.run_baseline()
     base_tuple = (base_rec_df, base_summary, base_zone_state)
 
-    # Scenario 1: Resource Pool Expansion (8 pumps, 6 crews, $650,000 budget)
+    # Scenario 1: Resource Pool Expansion (8 pumps, 6 crews, ₹650,000 budget)
     print("\n" + "=" * 90)
-    print(" WHAT-IF SCENARIO A: RESOURCE EXPANSION (+2 Pumps, +2 Crews, +$150k Budget)")
+    print(" WHAT-IF SCENARIO A: RESOURCE EXPANSION (+2 Pumps, +2 Crews, +₹150k Budget)")
     print("=" * 90)
     sim_rec_a, sim_sum_a, delta_a = sim.run_simulation(
         resource_overrides={"total_pumps": 8, "total_crews": 6, "total_budget": 650000.0},
