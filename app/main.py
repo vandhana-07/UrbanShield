@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import time
+import io
 import requests
 import pandas as pd
 import numpy as np
@@ -20,6 +21,8 @@ try:
     HAS_FOLIUM = True
 except ImportError:
     HAS_FOLIUM = False
+
+from data.update_manager import UpdateManager
 
 # Configure Streamlit Page
 st.set_page_config(
@@ -61,12 +64,6 @@ st.markdown("""
     @keyframes slideInRight {
         from { opacity: 0; transform: translateX(-12px); }
         to { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes pulseGlow {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
     @keyframes alertBorder {
@@ -165,6 +162,17 @@ st.markdown("""
         animation: alertBorder 3s infinite ease-in-out, fadeIn 0.4s ease-out;
     }
 
+    /* Active Data Override Banner */
+    .override-banner {
+        background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%);
+        border: 1px solid #38BDF8;
+        border-radius: 12px;
+        padding: 12px 18px;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
+        animation: fadeIn 0.3s ease-out;
+    }
+
     /* Sidebar Navigation Overhaul */
     section[data-testid="stSidebar"] {
         background-color: #0B0F17 !important;
@@ -253,25 +261,13 @@ st.markdown("""
         color: #38BDF8;
         animation: nodeGlow 2s infinite ease-in-out;
     }
-
-    /* Startup Initialization Banner */
-    .startup-banner {
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
-        border: 1px solid #38BDF8;
-        border-radius: 12px;
-        padding: 14px 18px;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
-        animation: fadeIn 0.3s ease-out;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 
 @st.cache_data(ttl=8)
 def fetch_real_pipeline_data():
-    """Fetches real Chennai 6-layer pipeline data via Backend API or Agent."""
-    # 1. Try Backend API
+    """Fetches real Chennai baseline 6-layer pipeline data via Backend API or Agent."""
     try:
         resp = requests.get(f"{BACKEND_URL}/zones/real", timeout=3.0)
         if resp.status_code == 200:
@@ -283,7 +279,6 @@ def fetch_real_pipeline_data():
     except Exception:
         pass
 
-    # 2. Try Direct Agent REST Server
     try:
         resp = requests.post(f"{AGENT_URL}/agent/analyze", json={}, timeout=3.0)
         if resp.status_code == 200:
@@ -291,7 +286,6 @@ def fetch_real_pipeline_data():
     except Exception:
         pass
 
-    # 3. Direct In-Process Layer Execution Fallback
     try:
         from agent.orchestrator import UrbanShieldAgent
         agent = UrbanShieldAgent()
@@ -319,14 +313,8 @@ def render_folium_map(zones: list):
         control_scale=True
     )
 
-    # Inject subtle keyframe styling into map
     custom_map_css = """
     <style>
-    @keyframes pulse-ring {
-        0% { transform: scale(0.95); opacity: 0.8; }
-        50% { transform: scale(1.15); opacity: 0.3; }
-        100% { transform: scale(0.95); opacity: 0.8; }
-    }
     .leaflet-interactive {
         transition: stroke-width 0.2s ease, fill-opacity 0.2s ease;
     }
@@ -356,9 +344,9 @@ def render_folium_map(zones: list):
         is_rec = zid == "CHN-REC-01" or "Rajalakshmi" in name
 
         if is_rec:
-            color = "#8B5CF6"  # Distinct Purple for REC Critical Campus
+            color = "#8B5CF6"
             radius = 13
-            border_color = "#38BDF8"  # Cyan ring
+            border_color = "#38BDF8"
             weight = 3
             popup_html = f"""
             <div style="font-family: sans-serif; font-size: 12px; min-width: 270px; line-height: 1.45; color: #0F172A;">
@@ -381,16 +369,16 @@ def render_folium_map(zones: list):
             """
         else:
             if risk >= 0.70:
-                color = "#EF4444"  # Red (Critical)
+                color = "#EF4444"
                 radius = 12
             elif risk >= 0.50:
-                color = "#F97316"  # Orange (High)
+                color = "#F97316"
                 radius = 10
             elif risk >= 0.35:
-                color = "#FACC15"  # Yellow (Moderate)
+                color = "#FACC15"
                 radius = 8
             else:
-                color = "#10B981"  # Green (Low)
+                color = "#10B981"
                 radius = 7
             border_color = color
             weight = 2
@@ -422,26 +410,32 @@ def render_folium_map(zones: list):
 
 
 def main():
-    # ------------------------------------------------------------------
-    # 1. 🚀 SYSTEM STARTUP SEQUENCE (Session State Managed)
-    # ------------------------------------------------------------------
-    if "startup_done" not in st.session_state:
-        st.session_state["startup_done"] = True
-        startup_placeholder = st.empty()
-        startup_placeholder.markdown("""
-            <div class="startup-banner">
-                <div style="font-size: 0.76rem; letter-spacing: 0.12em; color: #38BDF8; font-weight: 800;">URBANSHIELD AI COMMAND CENTER</div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: #F8FAFC; margin: 4px 0;">⚡ INITIALIZING OPERATIONAL TELEMETRY & DECISION ENGINE...</div>
-                <div style="display: flex; gap: 14px; font-size: 0.8rem; color: #34D399; margin-top: 6px; font-weight: 600; flex-wrap: wrap;">
-                    <span>✓ Data Streams Linked</span>
-                    <span>✓ 16 Monitored Locations Loaded</span>
-                    <span>✓ Google OR-Tools CP-SAT Ready</span>
-                    <span>✓ Simulation Engine Active</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        time.sleep(0.4)
-        startup_placeholder.empty()
+    update_mgr = UpdateManager()
+
+    # Fetch baseline pipeline data (SQLite read-only)
+    baseline_data = fetch_real_pipeline_data()
+    baseline_zones = baseline_data.get("zones", [])
+    baseline_summary = baseline_data.get("pipeline_summary", {})
+    baseline_df = pd.DataFrame(baseline_zones) if baseline_zones else pd.DataFrame()
+
+    # Active Working State Resolution (Session-State In-Memory Override)
+    is_overridden = st.session_state.get("active_data_mode") == "OVERRIDE" and "active_overridden_df" in st.session_state
+    
+    if is_overridden:
+        active_df = st.session_state["active_overridden_df"]
+        active_summary = st.session_state.get("active_summary", baseline_summary)
+        active_provenance_label = st.session_state.get("active_provenance_label", "User In-Memory Override")
+        active_provenance_type = st.session_state.get("active_provenance_type", "USER_UPLOAD")
+        active_last_updated = st.session_state.get("active_last_updated", datetime.now().strftime("%Y-%m-%d %H:%M:%S IST"))
+    else:
+        active_df = baseline_df.copy()
+        active_summary = baseline_summary
+        active_provenance_label = "🟢 VERIFIED BASELINE • Chennai Public Datasets (OpenCity / GCC / IMD)"
+        active_provenance_type = "VERIFIED_BASELINE"
+        active_last_updated = "Verified baseline dataset"
+
+    zones = active_df.to_dict(orient="records") if not active_df.empty else []
+    summary = active_summary
 
     # ------------------------------------------------------------------
     # COMMAND CENTER HEADER & PIPELINE TRACKER
@@ -453,8 +447,30 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
+    # If data override is active, render prominent notification banner
+    if is_overridden:
+        col_ov1, col_ov2 = st.columns([3, 1])
+        with col_ov1:
+            st.markdown(f"""
+                <div class="override-banner">
+                    <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: #38BDF8; font-weight: 700;">ACTIVE IN-MEMORY DATA OVERRIDE</div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: #F8FAFC; margin-top: 2px;">📡 {active_provenance_label}</div>
+                    <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 4px;">
+                        <b>Last Updated:</b> {active_last_updated} &nbsp;|&nbsp; 
+                        <i>Database (data/urbanshield.db) strictly preserved in read-only baseline state.</i>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        with col_ov2:
+            if st.button("🔄 RESET TO BASELINE", type="secondary", use_container_width=True):
+                st.session_state["active_data_mode"] = "BASELINE"
+                st.session_state.pop("active_overridden_df", None)
+                st.session_state.pop("active_summary", None)
+                st.session_state.pop("active_delta", None)
+                st.rerun()
+
     # ------------------------------------------------------------------
-    # 2. 🔄 SIX-LAYER PIPELINE FLOW INDICATOR
+    # SIX-LAYER PIPELINE FLOW INDICATOR
     # ------------------------------------------------------------------
     st.markdown("""
         <div class="pipeline-bar">
@@ -472,17 +488,11 @@ def main():
         </div>
     """, unsafe_allow_html=True)
 
-    # Fetch live pipeline data
-    data = fetch_real_pipeline_data()
-    zones = data.get("zones", [])
-    summary = data.get("pipeline_summary", {})
-    zones_df = pd.DataFrame(zones) if zones else pd.DataFrame()
-
     # ------------------------------------------------------------------
     # TOP KPI COMMAND CARDS
     # ------------------------------------------------------------------
-    total_locations = len(zones_df) if not zones_df.empty else 16
-    crit_high_count = len(zones_df[zones_df["risk_score"] >= 0.50]) if not zones_df.empty else 8
+    total_locations = len(active_df) if not active_df.empty else 16
+    crit_high_count = len(active_df[active_df["risk_score"] >= 0.50]) if not active_df.empty else 8
     pumps_deployed = summary.get("pumps_deployed", 4)
     pumps_cap = summary.get("total_pumps_capacity", 6)
     crews_deployed = summary.get("crews_deployed", 4)
@@ -555,6 +565,7 @@ def main():
             "Navigation Menu",
             [
                 "🚨 Commander Briefing",
+                "📡 Data Update & Live Feeds",
                 "🗺️ Geospatial Map",
                 "⚖️ Resource Optimization",
                 "🧠 Explainable AI (Why?)",
@@ -569,7 +580,6 @@ def main():
         st.markdown("<hr style='border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0 12px 0;'>", unsafe_allow_html=True)
         st.markdown("<p style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; font-weight: 700; margin-bottom: 8px;'>TELEMETRY STATUS</p>", unsafe_allow_html=True)
         
-        # Telemetry probes
         backend_online = False
         try:
             r = requests.get(f"{BACKEND_URL}/system/status", timeout=1.5)
@@ -586,6 +596,7 @@ def main():
 
         st.markdown(f"""
             <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.6; color: #CBD5E1;">
+                <div><b>Data Mode:</b> <span style="color: {'#38BDF8' if is_overridden else '#34D399'}; font-weight: 700;">{'OVERRIDE' if is_overridden else 'BASELINE'}</span></div>
                 <div><b>Backend API:</b> <span style="color: {'#34D399' if backend_online else '#FBBF24'};">● {'ONLINE (5000)' if backend_online else 'LOCAL'}</span></div>
                 <div><b>AI Agent:</b> <span style="color: {'#34D399' if agent_online else '#FBBF24'};">● {'LIVE (8000)' if agent_online else 'LOCAL'}</span></div>
                 <div><b>Solver:</b> <span style="color: #38BDF8;">CP-SAT Knapsack</span></div>
@@ -594,15 +605,15 @@ def main():
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------------
-    # VIEW 1: 🚨 COMMANDER MODE (OPERATIONAL SITUATION BRIEFING)
+    # VIEW 1: 🚨 COMMANDER MODE
     # ------------------------------------------------------------------
     if nav_option == "🚨 Commander Briefing":
         st.subheader("🚨 COMMANDER MODE — Operational Decision Support & Incident Directives")
         st.caption("Real-Time Incident Briefing & Actionable Resource Orders for Greater Chennai Emergency Incident Commanders")
 
-        if not zones_df.empty:
-            allocated_zones = zones_df[zones_df["allocation_status"] == "ALLOCATED"]
-            unserved_critical = zones_df[(zones_df["allocation_status"] == "SKIPPED") & (zones_df["priority_score"] >= 0.65)]
+        if not active_df.empty:
+            allocated_zones = active_df[active_df["allocation_status"] == "ALLOCATED"]
+            unserved_critical = active_df[(active_df["allocation_status"] == "SKIPPED") & (active_df["priority_score"] >= 0.65)]
             
             primary_zone = allocated_zones.iloc[0]["zone_name"] if not allocated_zones.empty else "None"
             sec_zones = [z for z in allocated_zones["zone_name"].tolist() if z != primary_zone]
@@ -626,7 +637,7 @@ def main():
                         </div>
                         <div>
                             <span style="color: #F87171; font-weight: 600;">⚠ UNSERVED HIGH-PRIORITY BOTTLENECK:</span><br>
-                            <span style="font-size: 1.05rem; font-weight: 700; color: #FCA5A5;">{', '.join(unserved_critical['zone_name'].tolist())}</span>
+                            <span style="font-size: 1.05rem; font-weight: 700; color: #FCA5A5;">{', '.join(unserved_critical['zone_name'].tolist()) if not unserved_critical.empty else 'None'}</span>
                         </div>
                         <div>
                             <span style="color: #FBBF24; font-weight: 600;">🚨 COMMAND ESCALATION DIRECTIVE:</span><br>
@@ -636,7 +647,6 @@ def main():
                 </div>
             """, unsafe_allow_html=True)
 
-            # Interactive Incident Brief Generator
             col_b1, col_b2 = st.columns([1, 2])
             with col_b1:
                 st.markdown("### 📄 Formal Incident Dispatch Memo")
@@ -659,11 +669,11 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
    - SECONDARY: {', '.join(sec_zones)} (1 Pump + 1 Rescue Crew Each)
 
 3. UNSERVED HIGH-PRIORITY BOTTLENECKS:
-   - {', '.join(unserved_critical['zone_name'].tolist())}
+   - {', '.join(unserved_critical['zone_name'].tolist()) if not unserved_critical.empty else 'None'}
    - DIRECTIVE: ESCALATE FOR REINFORCEMENTS (Requires +2 Rescue Crews)
 
 4. AI REASONING / EXPLAINABILITY:
-   - Global Knapsack Objective: Maximizes total city-wide priority coverage (1.6533).
+   - Global Knapsack Objective: Maximizes total city-wide priority coverage ({summary.get('total_covered_score', 1.6533):.4f}).
    - Servicing 3 population hubs protects +7.5% higher total priority coverage 
      than exhausting all remaining crews on a single secondary high-severity point.
 ================================================================================
@@ -676,11 +686,175 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                 fmap = render_folium_map(zones)
                 if fmap and HAS_FOLIUM:
                     st_folium(fmap, width="100%", height=380)
-                elif not zones_df.empty:
-                    st.map(zones_df[["latitude", "longitude"]], zoom=10)
+                elif not active_df.empty:
+                    st.map(active_df[["latitude", "longitude"]], zoom=10)
 
     # ------------------------------------------------------------------
-    # VIEW 2: 🗺️ LIVE GEOSPATIAL RISK MAP & EVIDENCE TRACE
+    # VIEW 2: 📡 DATA UPDATE & LIVE SCENARIO CONTROL (NEW FEATURE)
+    # ------------------------------------------------------------------
+    elif nav_option == "📡 Data Update & Live Feeds":
+        st.subheader("📡 Non-Destructive Live Data Update & Scenario Control")
+        st.caption("Safely inject fresh observation telemetry or simulate monsoon deluge surges in-memory without database mutation.")
+
+        data_source_mode = st.radio(
+            "Select Active Data Mode",
+            [
+                "● 🟢 Verified Chennai Baseline (Real GCC/IMD Observations)",
+                "○ 📤 Upload New Observation Data (CSV Validation & Preview)",
+                "○ ⚡ Simulate Live Observation Update (Interactive Telemetry Feed)"
+            ],
+            horizontal=True
+        )
+
+        st.markdown("---")
+
+        # MODE A: VERIFIED BASELINE
+        if "Verified Chennai Baseline" in data_source_mode:
+            st.info("🟢 **Verified Baseline Active:** The platform is currently consuming historical government-surveyed flood depths, GCC flood hotspots, and IMD meteorological telemetry stored in `data/urbanshield.db`.")
+            
+            if is_overridden:
+                if st.button("🔄 RESTORE VERIFIED BASELINE DATASET", type="primary"):
+                    st.session_state["active_data_mode"] = "BASELINE"
+                    st.session_state.pop("active_overridden_df", None)
+                    st.session_state.pop("active_summary", None)
+                    st.session_state.pop("active_delta", None)
+                    st.rerun()
+
+            disp_cols = ["zone_id", "zone_name", "rainfall_mm", "inundation_depth_inches", "hazard_category", "nearest_rainfall_station", "data_source"]
+            st.dataframe(baseline_df[disp_cols], height=380, use_container_width=True)
+
+        # MODE B: CSV UPLOAD
+        elif "Upload New Observation Data" in data_source_mode:
+            st.markdown("### 📤 Upload Observation CSV")
+            st.caption("Upload fresh field inspection observations. Required column: `zone_id` (e.g. CHN-Z01 to CHN-Z15, CHN-REC-01). Optional: `rainfall_mm`, `inundation_depth_inches`.")
+
+            uploaded_file = st.file_uploader("Choose CSV Observation File", type=["csv"])
+            if uploaded_file is not None:
+                try:
+                    raw_upload_df = pd.read_csv(uploaded_file)
+                    is_valid, clean_upload_df, errors, warnings = update_mgr.validate_csv_upload(raw_upload_df)
+
+                    st.markdown("#### 📄 Validation Audit")
+                    col_v1, col_v2, col_v3 = st.columns(3)
+                    with col_v1:
+                        st.metric("Rows Detected", len(raw_upload_df))
+                    with col_v2:
+                        st.metric("Valid Rows", len(clean_upload_df) if clean_upload_df is not None else 0)
+                    with col_v3:
+                        st.metric("Validation Status", "✓ PASSED" if is_valid else "❌ FAILED")
+
+                    if errors:
+                        for err in errors:
+                            st.error(err)
+
+                    if warnings:
+                        for w in warnings:
+                            st.warning(w)
+
+                    if is_valid and clean_upload_df is not None:
+                        st.markdown("#### 👀 Data Update Preview")
+                        st.dataframe(clean_upload_df, use_container_width=True)
+
+                        if st.button("🚀 APPLY CSV DATA UPDATE IN-MEMORY", type="primary", use_container_width=True):
+                            with st.spinner("Applying non-destructive update and re-evaluating 6-layer intelligence pipeline..."):
+                                active_state_df = update_mgr.apply_overrides_to_baseline(
+                                    baseline_df=baseline_df,
+                                    override_df=clean_upload_df,
+                                    source_label=f"User Upload: {uploaded_file.name}",
+                                    provenance_type="USER_UPLOAD"
+                                )
+                                upd_final_df, upd_summary = update_mgr.re_evaluate_pipeline(active_state_df)
+                                delta_res = update_mgr.compute_before_after_delta(baseline_df, upd_final_df)
+
+                                st.session_state["active_data_mode"] = "OVERRIDE"
+                                st.session_state["active_overridden_df"] = upd_final_df
+                                st.session_state["active_summary"] = upd_summary
+                                st.session_state["active_delta"] = delta_res
+                                st.session_state["active_provenance_label"] = f"🔵 USER UPLOAD • {uploaded_file.name}"
+                                st.session_state["active_provenance_type"] = "USER_UPLOAD"
+                                st.session_state["active_last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S IST")
+                                
+                                st.success("✓ Update applied in-memory. Database (data/urbanshield.db) remains 100% read-only.")
+                                time.sleep(0.3)
+                                st.rerun()
+
+                except Exception as e:
+                    st.error(f"Failed to process CSV file: {str(e)}")
+
+        # MODE C: SIMULATE LIVE UPDATE
+        elif "Simulate Live Observation Update" in data_source_mode:
+            st.markdown("### ⚡ Live Observation Telemetry Simulator")
+            st.warning("⚠️ **Notice:** This simulator generates non-destructive telemetry overrides strictly for live demonstration. It does NOT modify verified government records.")
+
+            col_s1, col_s2 = st.columns([1.2, 1])
+            with col_s1:
+                zone_options = baseline_df["zone_name"].tolist() if not baseline_df.empty else []
+                selected_zone_name = st.selectbox("Select Monitored Infrastructure Zone", zone_options, index=1 if len(zone_options) > 1 else 0)
+                selected_row = baseline_df[baseline_df["zone_name"] == selected_zone_name].iloc[0]
+                
+                curr_rain = float(selected_row.get("rainfall_mm", 35.0))
+                curr_depth = float(selected_row.get("inundation_depth_inches", 10.0))
+
+                sim_rain = st.slider("Simulated Precipitation (mm)", 0.0, 300.0, float(min(curr_rain + 45.0, 300.0)), 1.0)
+                sim_depth = st.slider("Simulated Inundation Depth (inches)", 0.0, 60.0, float(min(curr_depth + 14.0, 60.0)), 0.5)
+
+                if st.button("⚡ APPLY SIMULATED TELEMETRY IN-MEMORY", type="primary", use_container_width=True):
+                    with st.spinner("Injecting live observation & executing OR-Tools CP-SAT re-solve..."):
+                        sim_override_df = pd.DataFrame([{
+                            "zone_id": selected_row["zone_id"],
+                            "rainfall_mm": sim_rain,
+                            "inundation_depth_inches": sim_depth
+                        }])
+
+                        active_state_df = update_mgr.apply_overrides_to_baseline(
+                            baseline_df=baseline_df,
+                            override_df=sim_override_df,
+                            source_label="Simulated Live Telemetry Feed",
+                            provenance_type="SIMULATED_FEED"
+                        )
+                        upd_final_df, upd_summary = update_mgr.re_evaluate_pipeline(active_state_df)
+                        delta_res = update_mgr.compute_before_after_delta(baseline_df, upd_final_df)
+
+                        st.session_state["active_data_mode"] = "OVERRIDE"
+                        st.session_state["active_overridden_df"] = upd_final_df
+                        st.session_state["active_summary"] = upd_summary
+                        st.session_state["active_delta"] = delta_res
+                        st.session_state["active_provenance_label"] = f"🟠 SIMULATED LIVE FEED • {selected_zone_name} Surge"
+                        st.session_state["active_provenance_type"] = "SIMULATED_FEED"
+                        st.session_state["active_last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S IST")
+
+                        st.success("✓ Live observation injected. SQLite database remains untouched.")
+                        time.sleep(0.3)
+                        st.rerun()
+
+            with col_s2:
+                st.markdown("#### 🔍 Observation Delta Preview")
+                st.markdown(f"""
+                    <div style="background: rgba(15,23,42,0.85); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px 16px; font-size: 0.9rem; line-height: 1.6;">
+                        <b style="color:#38BDF8;">Target:</b> {selected_zone_name} (<code>{selected_row['zone_id']}</code>)<br>
+                        <b>Rainfall:</b> <code>{curr_rain:.1f} mm</code> ➔ <code style="color:#FBBF24;">{sim_rain:.1f} mm</code> ({sim_rain - curr_rain:+0.1f} mm)<br>
+                        <b>Inundation:</b> <code>{curr_depth:.1f}"</code> ➔ <code style="color:#F87171;">{sim_depth:.1f}"</code> ({sim_depth - curr_depth:+0.1f}")<br>
+                        <b>Current Status:</b> <span style="font-weight:700; color:{'#10B981' if selected_row.get('allocation_status')=='ALLOCATED' else '#F87171'};">{selected_row.get('allocation_status', 'SKIPPED')}</span>
+                    </div>
+                """, unsafe_allow_html=True)
+
+        # BEFORE -> AFTER COMPARISON (RENDERED WHEN OVERRIDE ACTIVE)
+        if is_overridden and "active_delta" in st.session_state:
+            delta_info = st.session_state["active_delta"]
+            st.markdown("---")
+            st.subheader("📊 BEFORE ➔ AFTER Re-Evaluation Matrix")
+            
+            plan_status = delta_info.get("plan_status", "RESOURCE PLAN UNCHANGED")
+            status_color = "#34D399" if plan_status == "RESOURCE PLAN UPDATED" else "#94A3B8"
+            st.markdown(f"**Optimization Response:** <span style='font-size: 1.15rem; font-weight: 800; color: {status_color};'>{plan_status}</span>", unsafe_allow_html=True)
+
+            delta_table = pd.DataFrame(delta_info.get("zone_deltas", []))
+            if not delta_table.empty:
+                display_cols = ["zone_id", "zone_name", "rainfall_before", "rainfall_after", "risk_before", "risk_after", "allocation_before", "allocation_after", "status_changed"]
+                st.dataframe(delta_table[display_cols], height=320, use_container_width=True)
+
+    # ------------------------------------------------------------------
+    # VIEW 3: 🗺️ GEOSPATIAL MAP
     # ------------------------------------------------------------------
     elif nav_option == "🗺️ Geospatial Map":
         st.subheader("🗺️ Real Chennai Flood Inundation & Geospatial Risk Map")
@@ -691,10 +865,9 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             fmap = render_folium_map(zones)
             if fmap and HAS_FOLIUM:
                 st_folium(fmap, width="100%", height=480)
-            elif not zones_df.empty:
-                st.map(zones_df[["latitude", "longitude"]], zoom=10)
+            elif not active_df.empty:
+                st.map(active_df[["latitude", "longitude"]], zoom=10)
 
-            # Map Legend
             st.markdown("""
                 <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.85rem; padding: 8px 12px; background: rgba(15,23,42,0.8); border-radius: 8px; margin-top: 6px; border: 1px solid rgba(255,255,255,0.08);">
                     <span>🔴 <b>Critical (≥ 0.70)</b></span>
@@ -706,35 +879,26 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             """, unsafe_allow_html=True)
 
         with col_details:
-            st.markdown("### 📋 Zone Risk Registry")
-            if not zones_df.empty:
+            st.markdown("### 📋 Active Zone Risk Registry")
+            if not active_df.empty:
                 disp_cols = ["priority_rank", "zone_name", "risk_score", "hazard_category", "inundation_depth_inches", "allocation_status"]
-                st.dataframe(zones_df[disp_cols], height=480, use_container_width=True)
+                st.dataframe(active_df[disp_cols], height=480, use_container_width=True)
 
     # ------------------------------------------------------------------
-    # VIEW 3: ⚖️ RESOURCE ALLOCATION & OPTIMIZATION (WITH PROCESSING ANIMATION)
+    # VIEW 4: ⚖️ RESOURCE ALLOCATION & OPTIMIZATION
     # ------------------------------------------------------------------
     elif nav_option == "⚖️ Resource Optimization":
         st.subheader("⚖️ Resource-Constrained Optimization (Google OR-Tools CP-SAT)")
         st.caption("Solves 0-1 Multi-Dimensional Knapsack problem under discrete pump, rescue crew, and budget bounds.")
 
-        # Interactive Trigger for Optimization Sequence
         col_btn, col_blank = st.columns([1, 2])
         with col_btn:
             if st.button("⚡ RE-SOLVE OPTIMAL DISPATCH", use_container_width=True):
                 with st.spinner("Executing Google OR-Tools CP-SAT Solver..."):
-                    opt_box = st.empty()
-                    opt_box.markdown("""
-                        <div style="padding: 12px 16px; background: rgba(15,23,42,0.9); border: 1px solid #38BDF8; border-radius: 10px; margin-bottom: 12px;">
-                            <div style="font-size: 0.85rem; color: #38BDF8; font-weight: 700;">SOLVING CP-SAT MULTI-DIMENSIONAL KNAPSACK...</div>
-                            <div style="font-size: 0.8rem; color: #94A3B8; margin-top: 4px;">• Evaluating 16 priority vectors<br>• Enforcing discrete 4 crew & 6 pump limits<br>• Global objective: Maximize city-wide protected score</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    time.sleep(0.3)
-                    opt_box.empty()
+                    time.sleep(0.2)
                     st.success("✓ Global Mathematical Optimum Proven & Loaded!")
 
-        if not zones_df.empty:
+        if not active_df.empty:
             m1, m2, m3, m4 = st.columns(4)
             with m1:
                 st.metric("Pumps Deployed", f"{summary.get('pumps_deployed', 4)} / {summary.get('total_pumps_capacity', 6)}")
@@ -748,8 +912,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             st.markdown("<br>", unsafe_allow_html=True)
             st.subheader("AI Optimized Deployment Registry")
 
-            # Table with clear status badges
-            display_alloc_df = zones_df[[
+            display_alloc_df = active_df[[
                 "priority_rank", "zone_id", "zone_name", "priority_score",
                 "hazard_category", "inundation_depth_inches", "allocation_status",
                 "allocated_pumps", "allocated_crews", "allocated_cost", "recommended_action"
@@ -758,7 +921,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             st.dataframe(display_alloc_df, height=450, use_container_width=True)
 
     # ------------------------------------------------------------------
-    # VIEW 4: 🧠 WHY DID URBANSHIELD CHOOSE THIS? (EXPLAINABLE AI)
+    # VIEW 5: 🧠 WHY DID URBANSHIELD CHOOSE THIS? (EXPLAINABLE AI)
     # ------------------------------------------------------------------
     elif nav_option == "🧠 Explainable AI (Why?)":
         st.subheader("🧠 Explainable Optimization — Why UrbanShield Made This Decision")
@@ -806,9 +969,9 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("### 🔍 Zone-by-Zone Explainability Inspector")
-        if not zones_df.empty:
-            selected_zone_name = st.selectbox("Select Zone to Inspect Reasoning", zones_df["zone_name"].tolist())
-            z_row = zones_df[zones_df["zone_name"] == selected_zone_name].iloc[0]
+        if not active_df.empty:
+            selected_zone_name = st.selectbox("Select Zone to Inspect Reasoning", active_df["zone_name"].tolist())
+            z_row = active_df[active_df["zone_name"] == selected_zone_name].iloc[0]
 
             st.info(f"**Zone Decision Analysis for {selected_zone_name} [{z_row['zone_id']}]:**\n\n"
                     f"• **Allocation Status:** `{z_row['allocation_status']}`\n\n"
@@ -817,7 +980,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                     f"• **Dispatcher Briefing:** {z_row.get('executive_summary', 'Routine surveillance.')}")
 
     # ------------------------------------------------------------------
-    # VIEW 5: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR (WITH BEFORE -> AFTER ANIMATION)
+    # VIEW 6: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR
     # ------------------------------------------------------------------
     elif nav_option == "🧪 What-If Simulator":
         st.subheader("🧪 What-If Crisis Scenario Simulator")
@@ -834,15 +997,6 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
 
         if st.button("🚀 RUN IN-MEMORY WHAT-IF SIMULATION", type="primary", use_container_width=True):
             with st.spinner("Executing Google OR-Tools CP-SAT re-solve in-memory..."):
-                sim_prog = st.empty()
-                sim_prog.markdown("""
-                    <div style="padding: 10px 14px; background: rgba(15,23,42,0.9); border: 1px solid #34D399; border-radius: 10px; margin-bottom: 12px;">
-                        <span style="color: #34D399; font-weight: 700;">RE-RUNNING CP-SAT MULTI-DIMENSIONAL KNAPSACK WITH REINFORCEMENTS...</span>
-                    </div>
-                """, unsafe_allow_html=True)
-                time.sleep(0.3)
-                sim_prog.empty()
-
                 try:
                     from layers.simulate import SimulateLayer
                     sim_layer = SimulateLayer()
@@ -883,7 +1037,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                     st.error(f"Simulation failed: {str(e)}")
 
     # ------------------------------------------------------------------
-    # VIEW 6: 🎓 REC INFRASTRUCTURE PROFILE & DIGITAL TWIN
+    # VIEW 7: 🎓 REC INFRASTRUCTURE PROFILE & DIGITAL TWIN
     # ------------------------------------------------------------------
     elif nav_option == "🎓 REC Digital Twin":
         st.subheader("🎓 Critical Infrastructure Profile: Rajalakshmi Engineering College (REC)")
@@ -931,7 +1085,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------------
-    # VIEW 7: 🤖 SIX-LAYER PIPELINE ARCHITECTURE
+    # VIEW 8: 🤖 SIX-LAYER PIPELINE ARCHITECTURE
     # ------------------------------------------------------------------
     elif nav_option == "🤖 6-Layer Architecture":
         st.subheader("🤖 Six-Layer Intelligence Pipeline Architecture")
@@ -957,23 +1111,23 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
 
         with tab1:
             st.write("Structured state loaded across all 16 locations from SQLite `data/urbanshield.db`.")
-            st.dataframe(zones_df[["zone_id", "zone_name", "latitude", "longitude", "inundation_depth_inches", "rainfall_mm", "nearest_rainfall_station", "rainfall_station_dist_km"]], height=350, use_container_width=True)
+            st.dataframe(active_df[["zone_id", "zone_name", "latitude", "longitude", "inundation_depth_inches", "rainfall_mm", "nearest_rainfall_station", "rainfall_station_dist_km"]], height=350, use_container_width=True)
 
         with tab2:
             st.write("Evidence-based risk scores and distance-weighted observational confidence.")
-            st.dataframe(zones_df[["zone_id", "zone_name", "risk_score", "risk_confidence", "hazard_category"]], height=350, use_container_width=True)
+            st.dataframe(active_df[["zone_id", "zone_name", "risk_score", "risk_confidence", "hazard_category"]], height=350, use_container_width=True)
 
         with tab3:
             st.write("Multi-Criteria Decision Analysis (MCDA) urgency ranking.")
-            st.dataframe(zones_df[["priority_rank", "zone_id", "zone_name", "priority_score", "priority_reason"]], height=350, use_container_width=True)
+            st.dataframe(active_df[["priority_rank", "zone_id", "zone_name", "priority_score", "priority_reason"]], height=350, use_container_width=True)
 
         with tab4:
             st.write("Google OR-Tools CP-SAT allocation plan under discrete resource limits.")
-            st.dataframe(zones_df[["priority_rank", "zone_id", "zone_name", "allocation_status", "allocated_pumps", "allocated_crews", "allocated_cost", "allocation_reason"]], height=350, use_container_width=True)
+            st.dataframe(active_df[["priority_rank", "zone_id", "zone_name", "allocation_status", "allocated_pumps", "allocated_crews", "allocated_cost", "allocation_reason"]], height=350, use_container_width=True)
 
         with tab5:
             st.write("Actionable operational directives and executive briefing memos.")
-            for _, r in zones_df.head(6).iterrows():
+            for _, r in active_df.head(6).iterrows():
                 color = "green" if r["allocation_status"] == "ALLOCATED" else "orange"
                 st.markdown(f"**Rank {r['priority_rank']} | [{r['zone_id']}] {r['zone_name']}** — `:{color}[{r['recommended_action']}]`")
                 st.caption(f"📝 {r.get('executive_summary', '')}")
@@ -984,7 +1138,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             st.info("Navigate to the '🧪 What-If Simulator' tab to run live interactive scenario tests.")
 
     # ------------------------------------------------------------------
-    # VIEW 8: 🌐 REAL DATA SOURCES & PROVENANCE
+    # VIEW 9: 🌐 REAL DATA SOURCES & PROVENANCE
     # ------------------------------------------------------------------
     elif nav_option == "🌐 Data Provenance":
         st.subheader("🌐 Real Chennai Data Sources & Provenance")
