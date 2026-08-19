@@ -1,0 +1,13 @@
+zone_id,zone_name,rainfall,drainage_capacity,population,traffic,road_condition,critical_infrastructure,latitude,longitude
+Z01,Downtown Commercial,85.5,40.0,45000,88.0,4.5,5,13.0827,80.2707
+Z02,Riverbank Residential,110.0,30.0,62000,65.0,3.2,3,13.0878,80.2785
+Z03,Industrial Estate,45.0,70.0,15000,70.0,6.8,8,13.0750,80.2600
+Z04,Tech Park North,60.0,60.0,35000,50.0,8.0,4,13.0950,80.2850
+Z05,Old Town Market,125.0,25.0,85000,95.0,2.5,6,13.0600,80.2500
+Z06,South Suburbs,30.0,80.0,28000,35.0,7.5,2,13.0400,80.2400
+Z07,East Coastal Belt,140.0,35.0,50000,75.0,3.8,4,13.0700,80.2950
+Z08,University District,75.0,50.0,40000,60.0,6.0,5,13.0500,80.2650
+Z09,West Highway Hub,95.0,45.0,22000,90.0,5.0,3,13.0800,80.2300
+Z10,Airport Enclave,50.0,90.0,18000,40.0,8.5,7,13.0300,80.2100
+Z11_ERR,Bad Sensor Zone,,40.0,12000,50.0,5.0,1,13.0900,80.2200
+Z12_ERR,Out of Bounds Zone,60.0,-10.0,15000,110.0,15.0,2,13.0920,80.2250
