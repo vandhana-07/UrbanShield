@@ -7,7 +7,7 @@
 [![Framework](https://img.shields.io/badge/Framework-Flask%203.0-green.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![Database](https://img.shields.io/badge/Database-SQLite%20%2B%20SQLAlchemy-lightgrey.svg?logo=sqlite&logoColor=white)](https://sqlite.org)
 [![API Version](https://img.shields.io/badge/API-v1.0%20(REST)-orange.svg)](http://localhost:5000/api)
-[![Tests](https://img.shields.io/badge/Smoke%20Tests-45%2F45%20Passed%20(100%25)-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Smoke%20Tests-55%2F55%20Passed%20(100%25)-brightgreen.svg)]()
 [![CORS](https://img.shields.io/badge/CORS-Enabled%20(All%20Origins)-success.svg)]()
 
 ---
@@ -517,6 +517,90 @@ Lists history of previous simulation runs.
 
 #### `GET /api/simulations/<id>`
 Retrieves full metrics and cascade graph breakdown for a past simulation.
+
+---
+
+### 7. Municipal Zone Summaries
+
+#### `GET /api/zones/summary`
+Aggregates infrastructure asset counts, average risk score, total population exposure, economic risk, and highest priority tier grouped by municipal district/zone.
+
+```bash
+curl -X GET http://localhost:5000/api/zones/summary
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "zones": [
+      {
+        "zone": "District 1 - Waterfront",
+        "asset_count": 6,
+        "critical_asset_count": 3,
+        "avg_risk_score": 0.812,
+        "total_population_impact": 312000,
+        "total_economic_exposure": 42500000.0,
+        "highest_priority_tier": "P1_URGENT"
+      },
+      {
+        "zone": "District 3 - Central Corridor",
+        "asset_count": 6,
+        "critical_asset_count": 2,
+        "avg_risk_score": 0.645,
+        "total_population_impact": 248000,
+        "total_economic_exposure": 28400000.0,
+        "highest_priority_tier": "P1_URGENT"
+      }
+    ]
+  },
+  "meta": { "source": "mock", "timestamp": "2026-08-19T14:45:00Z", "version": "v1" }
+}
+```
+
+---
+
+### 8. Budget-Constrained Recommendation Optimizer
+
+#### `POST /api/optimize/allocate`
+Executes a greedy knapsack cost-efficiency optimization algorithm over pending recommendations to maximize risk reduction under a financial budget limit (with optional zone filter).
+
+```bash
+curl -X POST http://localhost:5000/api/optimize/allocate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "budget_limit": 1500000,
+    "zone_filter": "District 1 - Waterfront"
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "budget_limit": 1500000.0,
+    "total_cost": 1285000.0,
+    "remaining_budget": 215000.0,
+    "total_risk_reduction_achieved_pct": 146.4,
+    "recommendations_considered": 6,
+    "recommendations_selected": 3,
+    "selected_recommendations": [
+      {
+        "id": 1,
+        "asset_id": "AST-BRG-001",
+        "action_type": "structural_retrofit",
+        "title": "Emergency Pier Post-Tensioning & Deck Jacketing",
+        "estimated_cost": 847500.0,
+        "expected_risk_reduction_pct": 74.4,
+        "status": "pending"
+      }
+    ]
+  },
+  "meta": { "source": "mock", "timestamp": "2026-08-19T14:45:00Z", "version": "v1" }
+}
+```
 
 ---
 

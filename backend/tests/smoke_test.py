@@ -169,7 +169,7 @@ def run_tests():
     assert_test("Simulation ID matches", res_single.get_json().get("data", {}).get("simulation_id") == sim_id)
 
     # 13. Validation & Error Handling
-    print("\n[14/14] Testing Error Handling & Validation...")
+    print("\n[14/16] Testing Error Handling & Validation...")
     # 400 Bad Intensity
     res_bad = client.post("/api/simulations/run", json={"hazard_type": "flood", "intensity": 2.5})
     assert_test("Invalid intensity returns 400", res_bad.status_code == 400)
@@ -179,6 +179,41 @@ def run_tests():
     res_404 = client.get("/api/assets/NON_EXISTENT_ID")
     assert_test("Non-existent asset returns 404", res_404.status_code == 404)
     assert_test("Error code is NOT_FOUND", res_404.get_json().get("error", {}).get("code") == "NOT_FOUND")
+
+    # 14. Zone Summary (Feature 1)
+    print("\n[15/16] Testing GET /api/zones/summary...")
+    res_zones = client.get("/api/zones/summary")
+    assert_test("Zone Summary Status Code 200", res_zones.status_code == 200)
+    zones_payload = res_zones.get_json().get("data", {}).get("zones", [])
+    assert_test("Zones list is non-empty", len(zones_payload) >= 4)
+    first_zone = zones_payload[0]
+    assert_test("Zone object contains required fields", all(k in first_zone for k in [
+        "zone", "asset_count", "critical_asset_count", "avg_risk_score",
+        "total_population_impact", "total_economic_exposure", "highest_priority_tier"
+    ]))
+
+    # 15. Budget-Constrained Optimizer (Feature 2)
+    print("\n[16/16] Testing POST /api/optimize/allocate...")
+    # Unfiltered optimization
+    opt_res = client.post("/api/optimize/allocate", json={"budget_limit": 1500000})
+    assert_test("Optimizer Status Code 200", opt_res.status_code == 200)
+    opt_data = opt_res.get_json().get("data", {})
+    assert_test("Optimizer selected recommendations", opt_data.get("recommendations_selected", 0) >= 1)
+    assert_test("Optimizer stayed within budget", opt_data.get("total_cost", 0) <= 1500000)
+    assert_test("Optimizer calculated risk reduction", opt_data.get("total_risk_reduction_achieved_pct", 0) > 0)
+
+    # Filtered by zone
+    opt_filtered = client.post("/api/optimize/allocate", json={
+        "budget_limit": 1000000,
+        "zone_filter": "District 1 - Waterfront"
+    })
+    assert_test("Filtered Optimizer Status Code 200", opt_filtered.status_code == 200)
+    filtered_data = opt_filtered.get_json().get("data", {})
+    assert_test("Filtered Optimizer considered items", filtered_data.get("recommendations_considered", 0) >= 1)
+
+    # 400 Bad budget
+    opt_bad = client.post("/api/optimize/allocate", json={"budget_limit": -500})
+    assert_test("Negative budget returns 400", opt_bad.status_code == 400)
 
     print("\n" + "=" * 60)
     print(f"  ALL {passed}/{total} TESTS PASSED SUCCESSFULLY! (100% COVERAGE)")

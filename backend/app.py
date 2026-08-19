@@ -33,6 +33,8 @@ def create_app(config_class=Config):
     from routes.risks import risks_bp
     from routes.recommendations import recommendations_bp
     from routes.simulations import simulations_bp
+    from routes.zones import zones_bp
+    from routes.optimize import optimize_bp
 
     api_prefix = config_class.API_PREFIX  # "/api"
     app.register_blueprint(system_bp, url_prefix=api_prefix)
@@ -41,6 +43,8 @@ def create_app(config_class=Config):
     app.register_blueprint(risks_bp, url_prefix=api_prefix)
     app.register_blueprint(recommendations_bp, url_prefix=api_prefix)
     app.register_blueprint(simulations_bp, url_prefix=api_prefix)
+    app.register_blueprint(zones_bp, url_prefix=api_prefix)
+    app.register_blueprint(optimize_bp, url_prefix=api_prefix)
 
     # Centralized HTTP Error Handlers
     @app.errorhandler(400)
