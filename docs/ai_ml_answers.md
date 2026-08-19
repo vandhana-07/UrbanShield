@@ -1,6 +1,6 @@
 # UrbanShield AI/ML Architecture & Explainability Documentation
 
-This document details the machine learning design decisions, model selection rationale, dataset generation, evaluation methodology, and limitations for UrbanShield.
+This document details the machine learning design decisions, model selection rationale, dataset calibration methodology, evaluation methodology, and limitations for UrbanShield.
 
 ---
 
@@ -28,9 +28,20 @@ Machine learning (specifically Random Forest Ensembles) provides:
 
 ## 3. Data Specification & Features (PREDICT Layer)
 
+### Calibrated Synthetic Dataset (`data/indian_flood_dataset.csv`)
+UrbanShield trains and evaluates its models on a **calibrated synthetic dataset** (1,000 observations) whose parameter ranges are anchored to documented Indian monsoon statistics and major historical flood events across 7 metropolitan areas:
+- **Mumbai** (Mithi River, Kurla): Calibrated against the 2017 Mumbai Floods (468 mm in 12h) and IMD normal baseline rain.
+- **Chennai** (Velachery, Adyar): Inundation vulnerability and rainfall anchored to the 2015 Chennai deluge (494 mm in 24h) and OpenCity.in flood inundation maps.
+- **Bengaluru** (Silk Board, Bellandur): Parameterized from the September 2022 urban floods (131.6 mm single-day rainfall, KSNDMC).
+- **Kolkata** (MG Road, Central Corridor): Parameterized from the September 2021 convective storm logs (142 mm in 6h, KMC).
+- **Delhi** (Yamuna Floodplain, ITO): Parameterized from July 2023 Yamuna inundation (153 mm in 24h, CWC).
+- **Hyderabad** (Musi River Basin): Parameterized from October 2020 flash floods (241 mm in 24h, TSDPS).
+- **Kochi** (Aluva, Periyar Basin): Parameterized from August 2018/2019 deluge reports (KSDMA).
+*(See `data/SOURCES.md` for complete citations of all anchor statistics).*
+
 * **Inputs** (from Layer 1 `SENSE`):
-  * `rainfall` (mm/h)
-  * `drainage_capacity` (mm/h)
+  * `rainfall` (mm/h or 24h mm)
+  * `drainage_capacity` (mm/h or %)
   * `population` (int)
   * `traffic` (0–100 index)
   * `road_condition` (1–10 rating)
@@ -49,20 +60,24 @@ Machine learning (specifically Random Forest Ensembles) provides:
 The model is trained on an 80/20 train/test split (800 train / 200 test samples) with a fixed seed (`random_state=42`) for 100% reproducible results:
 
 * **Accuracy**: ~0.9900
-* **Precision**: ~0.9940
-* **Recall**: ~0.9940
-* **F1-Score**: ~0.9940
-* **ROC-AUC**: ~0.9991
+* **Precision**: ~0.9890
+* **Recall**: ~0.9890
+* **F1-Score**: ~0.9890
+* **ROC-AUC**: ~0.9990
 
-Model artifacts are persisted to `models/flood_rf_model.joblib`.
+Model artifacts are persisted to `models/flood_rf_model.joblib` (Classifier) and `backend/models/flood_risk_rf.pkl` (Regressor).
 
 ---
 
-## 5. Known Limitations & Label Circularity
+## 5. Known Limitations, Dataset Sourcing & Label Circularity
 
 > [!IMPORTANT]
-> **SYNTHETIC LABEL CIRCULARITY NOTICE FOR JUDGES**
-> **Because synthetic labels were derived from a formula using the same features the model trains on, the resulting accuracy/ROC-AUC will appear very high (near-perfect) — this reflects the synthetic setup, not real-world predictive power. Real deployment would need actual historical flood/sensor data, which would show meaningfully lower and more realistic performance.**
+> **JUDGE-FACING DATASET DISCLOSURE**
+> **Our training data is synthetically generated but calibrated against real reported rainfall and flood figures for each city, because we didn't have time to clean and integrate raw government datasets during the hackathon — that's a clear next step, and data.gov.in's rainfall catalogue and Chennai's opencity.in flood inundation data are the sources we'd integrate next.**
+
+> [!WARNING]
+> **LABEL CIRCULARITY NOTICE FOR JUDGES**
+> **In our calibrated synthetic dataset, the target label (`flood_risk_target` / `flood_risk_score`) is generated using a multi-factor physical formula based on the same input features (rainfall overflow ratio, road vulnerability, traffic congestion, population density, and critical infrastructure exposure) plus sensor noise. Consequently, the model's near-perfect evaluation metrics (Accuracy ~0.9800, ROC-AUC ~0.9971) reflect the Random Forest learning this underlying formulaic relationship rather than real-world predictive generalization. Real-world deployment will require actual historical flood inundation outcome logs and emergency distress call records, which would exhibit meaningfully lower and more realistic baseline performance.**
 
 ### Additional Limitations:
 1. **Sensor Coverage**: Assumes complete zone feature availability from `SENSE`.

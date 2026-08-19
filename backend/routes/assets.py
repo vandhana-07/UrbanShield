@@ -124,23 +124,31 @@ def create_asset():
         db.session.add(asset)
         db.session.flush()
 
-        # Compute initial risk & priority via agent_client
-        analysis = agent_client.analyze_assets([asset])
+        # Compute initial risk & priority via agent_client across all assets in system for global ranking & allocation
+        all_assets = Asset.query.all()
+        analysis = agent_client.analyze_assets(all_assets)
         assessments = analysis.get("assessments", [])
         source = analysis.get("source", "mock")
 
-        if assessments:
-            first = assessments[0]
-            risk_data = first.get("risk", {})
-            priority_data = first.get("priority", {})
-            recs_data = first.get("recommendations", [])
+        target_assessment = None
+        for item in assessments:
+            if str(item.get("asset_id")) == str(asset.id):
+                target_assessment = item
+                break
+        if not target_assessment and assessments:
+            target_assessment = assessments[-1]
+
+        if target_assessment:
+            risk_data = target_assessment.get("risk", {})
+            priority_data = target_assessment.get("priority", {})
+            recs_data = target_assessment.get("recommendations", [])
 
             risk_obj = RiskAssessment(
                 asset_id=asset.id,
                 risk_score=risk_data.get("risk_score", 0.5),
                 failure_probability=risk_data.get("failure_probability", 0.4),
                 consequence_level=risk_data.get("consequence_level", "medium"),
-                primary_hazard=risk_data.get("primary_hazard", "Environmental Stress"),
+                primary_hazard=risk_data.get("primary_hazard", "Flood & Drainage Overflow"),
                 predicted_days_to_failure=risk_data.get("predicted_days_to_failure", 180),
                 confidence_score=risk_data.get("confidence_score", 0.85),
                 source=source
@@ -149,9 +157,9 @@ def create_asset():
 
             priority_obj = PriorityRanking(
                 asset_id=asset.id,
-                rank=Asset.query.count(),
-                priority_tier=priority_data.get("priority_tier", "P3_MEDIUM"),
-                composite_urgency_score=priority_data.get("composite_urgency_score", 50.0),
+                rank=priority_data.get("rank", Asset.query.count()),
+                priority_tier=priority_data.get("tier", "P3_MEDIUM"),
+                composite_urgency_score=priority_data.get("priority_score", 0.5) * 100.0,
                 estimated_population_impact=priority_data.get("estimated_population_impact", 10000),
                 estimated_economic_exposure=priority_data.get("estimated_economic_exposure", 500000.0),
                 source=source
@@ -159,14 +167,17 @@ def create_asset():
             db.session.add(priority_obj)
 
             for r in recs_data:
+                act = r.get("action_type") or r.get("action") or "REPAIR & DISPATCH IMMEDIATELY"
+                desc = r.get("description") or r.get("executive_summary") or "Emergency response active."
+                cost_val = float(r.get("estimated_cost", r.get("cost", 50000.0)))
                 rec_obj = Recommendation(
                     asset_id=asset.id,
-                    action_type=r.get("action_type", "sensor_audit"),
-                    title=r.get("title", "Standard Inspection"),
-                    description=r.get("description", "Perform baseline sensor inspection."),
-                    estimated_cost=r.get("estimated_cost", 50000.0),
-                    expected_risk_reduction_pct=r.get("expected_risk_reduction_pct", 30.0),
-                    status="pending",
+                    action_type=act,
+                    title=r.get("title", act),
+                    description=desc,
+                    estimated_cost=cost_val,
+                    expected_risk_reduction_pct=r.get("expected_risk_reduction_pct", 85.0),
+                    status=r.get("status", "pending"),
                     tradeoff_analysis=r.get("tradeoff_analysis", {}),
                     source=source
                 )

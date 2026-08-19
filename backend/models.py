@@ -94,6 +94,9 @@ class PriorityRanking(db.Model):
     created_at = db.Column(db.DateTime, default=utcnow)
 
     def to_dict(self):
+        score_val = round(self.composite_urgency_score, 1)
+        # 0-1 scale priority_score for UI
+        norm_score = round(self.composite_urgency_score / 100.0, 4) if self.composite_urgency_score > 1.0 else round(self.composite_urgency_score, 4)
         return {
             "id": self.id,
             "asset_id": self.asset_id,
@@ -101,7 +104,9 @@ class PriorityRanking(db.Model):
             "asset_category": self.asset.category if self.asset else None,
             "rank": self.rank,
             "priority_tier": self.priority_tier,
-            "composite_urgency_score": round(self.composite_urgency_score, 1),
+            "composite_urgency_score": score_val,
+            "priority_score": norm_score,
+            "primary_reason": f"MCDA Rank #{self.rank} ({self.priority_tier})",
             "estimated_population_impact": self.estimated_population_impact,
             "estimated_economic_exposure": round(self.estimated_economic_exposure, 2),
             "source": self.source,
@@ -130,8 +135,10 @@ class Recommendation(db.Model):
             "asset_id": self.asset_id,
             "asset_name": self.asset.name if self.asset else None,
             "action_type": self.action_type,
+            "action": self.action_type,
             "title": self.title,
             "description": self.description,
+            "executive_summary": self.description,
             "estimated_cost": round(self.estimated_cost, 2),
             "expected_risk_reduction_pct": round(self.expected_risk_reduction_pct, 1),
             "status": self.status,

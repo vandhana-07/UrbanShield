@@ -33,6 +33,15 @@ graph LR
 
 ---
 
+## 📊 Dataset & Machine Learning Calibration
+
+UrbanShield trains its predictive models on a **calibrated synthetic dataset** (`data/indian_flood_dataset.csv`) whose parameter distributions are anchored to documented Indian monsoon events and municipal statistics across major metropolitan flood zones (e.g., Mumbai Mithi River, Chennai Velachery, Bengaluru Silk Board, Kolkata MG Road, Delhi Yamuna Floodplain, Hyderabad Musi River, and Kochi). 
+
+*All parameter anchors and citations are documented in [`data/SOURCES.md`](./data/SOURCES.md).*  
+*Note: The training dataset is synthetically generated and calibrated against published figures; it is not raw governmental sensor telemetry.*
+
+---
+
 ## 📂 Repository Organization
 
 ```
@@ -49,7 +58,9 @@ UrbanShield/
 │   └── README.md                # 📖 Complete Backend Documentation & API Reference
 │
 ├── frontend/                    # 🎨 Interactive Geospatial Dashboard (Member 1)
-└── ai-agent/                    # 🤖 Multi-Layer AI Intelligence System (Member 3)
+├── layers/                      # 🤖 Multi-Layer AI Intelligence (Sense, Predict, Prioritize, Optimize, Recommend, Simulate)
+├── data/                        # 📈 Calibrated Datasets (indian_flood_dataset.csv, SOURCES.md)
+└── docs/                        # 📖 AI/ML Architecture & Explainability Documentation
 ```
 
 ---

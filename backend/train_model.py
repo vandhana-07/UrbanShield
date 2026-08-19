@@ -1,55 +1,51 @@
 """
 UrbanShield Machine Learning Model Trainer
 Trains a Scikit-Learn RandomForestRegressor for SENSE-stage Flood Risk Prediction.
+Trained on a calibrated synthetic dataset whose parameter ranges are anchored to documented
+Indian monsoon and urban flood statistics (see data/SOURCES.md).
 Saves the trained model to models/flood_risk_rf.pkl using joblib.
 """
 
 import os
 from pathlib import Path
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error
 import joblib
 
-def generate_synthetic_dataset(n_samples=600, random_state=42):
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATASET_PATH = BASE_DIR / "data" / "indian_flood_dataset.csv"
+
+
+def load_calibrated_dataset():
     """
-    Generates a realistic synthetic meteorological and hydrological dataset.
+    Loads the calibrated synthetic dataset anchored to documented Indian monsoon
+    and flood statistics (IMD, CWC, MCGM, KSNDMC, OpenCity.in).
     Features: [rainfall_mm, drainage_capacity_pct, population, traffic_index]
-    Target: flood_risk_score (0.0 to 1.0) with physical non-linear interactions.
+    Target: flood_risk_score (continuous index from 0.05 to 0.98)
     """
-    np.random.seed(random_state)
-    
-    # Feature distributions
-    rainfall_mm = np.random.uniform(0.0, 150.0, size=n_samples)
-    drainage_capacity_pct = np.random.uniform(10.0, 100.0, size=n_samples)
-    population = np.random.uniform(5000.0, 300000.0, size=n_samples)
-    traffic_index = np.random.uniform(0.0, 1.0, size=n_samples)
-    
-    # Non-linear physical interactions
-    rainfall_factor = (rainfall_mm / 120.0) ** 1.15
-    drainage_deficit = ((100.0 - drainage_capacity_pct) / 100.0) ** 1.10
-    storm_surge_interaction = rainfall_factor * drainage_deficit * 0.25
-    population_exposure = (population / 200000.0) ** 0.85 * 0.15
-    traffic_factor = traffic_index * 0.10
-    
-    # Gaussian noise modeling sensor variance
-    noise = np.random.normal(0.0, 0.025, size=n_samples)
-    
-    raw_target = (
-        (rainfall_factor * 0.38) +
-        (drainage_deficit * 0.25) +
-        storm_surge_interaction +
-        population_exposure +
-        traffic_factor +
-        noise
-    )
-    
-    # Clamp target to realistic bounds [0.05, 0.98]
-    flood_risk_score = np.clip(raw_target, 0.05, 0.98)
-    
-    X = np.column_stack([rainfall_mm, drainage_capacity_pct, population, traffic_index])
-    y = flood_risk_score
+    if not DATASET_PATH.exists():
+        # Fallback to importing generator if CSV is missing
+        from layers.predict import PredictLayer
+        generator = PredictLayer()
+        df = generator.generate_calibrated_flood_data(num_samples=1000, random_state=42)
+        DATASET_PATH.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(DATASET_PATH, index=False)
+    else:
+        df = pd.read_csv(DATASET_PATH)
+
+    rainfall = df["rainfall_mm"] if "rainfall_mm" in df.columns else df["rainfall"]
+    drainage = df["drainage_capacity"] if "drainage_capacity" in df.columns else df["drainage_capacity_pct"]
+    population = df["population_density"] if "population_density" in df.columns else df["population"]
+    traffic = df["traffic_index"] if "traffic_index" in df.columns else df["traffic"]
+
+    # Scale traffic index to 0.0 - 1.0 range if expressed in 0 - 100 percentage
+    traffic_scaled = traffic.apply(lambda t: t / 100.0 if t > 1.0 else t)
+
+    X = np.column_stack([rainfall.values, drainage.values, population.values, traffic_scaled.values])
+    y = df["flood_risk_score"].values
     return X, y
 
 
@@ -58,9 +54,9 @@ def train_and_save_model():
     print("  URBANSHIELD RANDOM FOREST FLOOD RISK MODEL TRAINING")
     print("=" * 60)
     
-    # 1. Generate Dataset
-    print("[1/4] Generating 600 synthetic training observations...")
-    X, y = generate_synthetic_dataset(n_samples=600, random_state=42)
+    # 1. Load Calibrated Dataset
+    print("[1/4] Loading calibrated synthetic Indian flood observations...")
+    X, y = load_calibrated_dataset()
     
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42
@@ -84,7 +80,7 @@ def train_and_save_model():
     r2 = r2_score(y_test, y_pred)
     mae = mean_absolute_error(y_test, y_pred)
     
-    print(f"      Validation R² Score : {r2:.4f} (Target > 0.95)")
+    print(f"      Validation R² Score : {r2:.4f} (Target > 0.90)")
     print(f"      Mean Absolute Error : {mae:.4f}")
     
     # 4. Save Model Artifact

@@ -1,3 +1,4 @@
+import uuid
 from flask import Blueprint, request
 from database import db
 from models import Asset, Simulation
@@ -62,8 +63,13 @@ def run_simulation():
             assets=assets
         )
 
-        sim_id = sim_result.get("simulation_id")
+        sim_id = sim_result.get("simulation_id") or f"SIM-{uuid.uuid4().hex[:8].upper()}"
         source = sim_result.get("source", "mock")
+
+        # Ensure ID is unique in SQLite
+        if Simulation.query.get(sim_id):
+            sim_id = f"{sim_id}-{uuid.uuid4().hex[:4].upper()}"
+            sim_result["simulation_id"] = sim_id
 
         # Save simulation result to DB
         sim_record = Simulation(
