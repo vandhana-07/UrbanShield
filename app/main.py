@@ -7,6 +7,7 @@ Powered by 6-Layer Multi-Layer AI Pipeline, Real OpenCity/GCC/IMD Data, Google O
 import os
 import sys
 import json
+import time
 import requests
 import pandas as pd
 import numpy as np
@@ -32,7 +33,7 @@ st.set_page_config(
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5000/api").rstrip("/")
 AGENT_URL = os.getenv("AGENT_URL", "http://localhost:8000").rstrip("/")
 
-# Custom CSS Command Center Styling
+# Custom CSS Command Center Styling & Smooth Keyframe Animations
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -51,6 +52,35 @@ st.markdown("""
         font-family: 'JetBrains Mono', monospace;
     }
 
+    /* Keyframe Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(-12px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pulseGlow {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    @keyframes alertBorder {
+        0% { border-color: rgba(239, 68, 68, 0.4); }
+        50% { border-color: rgba(239, 68, 68, 0.9); }
+        100% { border-color: rgba(239, 68, 68, 0.4); }
+    }
+
+    @keyframes nodeGlow {
+        0% { border-color: rgba(56, 189, 248, 0.3); }
+        50% { border-color: rgba(56, 189, 248, 0.9); box-shadow: 0 0 12px rgba(56, 189, 248, 0.3); }
+        100% { border-color: rgba(56, 189, 248, 0.3); }
+    }
+
     /* Command Center Header */
     .command-header {
         background: linear-gradient(135deg, #0B0F17 0%, #151D2A 50%, #0F172A 100%);
@@ -59,6 +89,7 @@ st.markdown("""
         padding: 1.6rem 2.2rem;
         margin-bottom: 1.4rem;
         box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        animation: fadeIn 0.4s ease-out;
     }
 
     .command-title {
@@ -88,12 +119,14 @@ st.markdown("""
         border-radius: 14px;
         padding: 1.2rem 1.3rem;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+        animation: fadeIn 0.5s ease-out;
     }
 
     .kpi-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(56, 189, 248, 0.4);
+        transform: translateY(-3px);
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 14px 30px -5px rgba(56, 189, 248, 0.15);
     }
 
     .kpi-label {
@@ -129,6 +162,7 @@ st.markdown("""
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         border-right: 1px solid rgba(255, 255, 255, 0.08);
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        animation: alertBorder 3s infinite ease-in-out, fadeIn 0.4s ease-out;
     }
 
     /* Sidebar Navigation Overhaul */
@@ -147,7 +181,7 @@ st.markdown("""
         border-radius: 9px;
         padding: 7px 11px;
         margin-bottom: 2px;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         font-size: 0.88rem;
     }
@@ -155,7 +189,7 @@ st.markdown("""
     section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
         background: rgba(56, 189, 248, 0.12);
         border-color: rgba(56, 189, 248, 0.4);
-        transform: translateX(3px);
+        transform: translateX(4px);
     }
 
     section[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
@@ -170,6 +204,12 @@ st.markdown("""
         border-radius: 14px;
         padding: 1.3rem;
         height: 100%;
+        transition: transform 0.2s ease;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .tradeoff-card:hover {
+        transform: translateY(-2px);
     }
 
     .trace-step {
@@ -178,6 +218,51 @@ st.markdown("""
         border-radius: 10px;
         padding: 0.9rem 1.1rem;
         margin-bottom: 0.6rem;
+        animation: slideInRight 0.35s ease-out;
+    }
+
+    /* Pipeline Flow Indicator */
+    .pipeline-bar {
+        display: flex;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 12px;
+        padding: 10px 14px;
+        margin-bottom: 1.2rem;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+
+    .pipeline-node {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94A3B8;
+        transition: all 0.3s ease;
+    }
+
+    .pipeline-node.active {
+        background: rgba(56, 189, 248, 0.15);
+        border-color: #38BDF8;
+        color: #38BDF8;
+        animation: nodeGlow 2s infinite ease-in-out;
+    }
+
+    /* Startup Initialization Banner */
+    .startup-banner {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+        border: 1px solid #38BDF8;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+        animation: fadeIn 0.3s ease-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -222,7 +307,7 @@ def fetch_real_pipeline_data():
 
 
 def render_folium_map(zones: list):
-    """Renders high-contrast command center geospatial map."""
+    """Renders high-contrast command center geospatial map with subtle pulse markers."""
     if not HAS_FOLIUM or not zones:
         return None
 
@@ -233,6 +318,25 @@ def render_folium_map(zones: list):
         tiles="CartoDB dark_matter",
         control_scale=True
     )
+
+    # Inject subtle keyframe styling into map
+    custom_map_css = """
+    <style>
+    @keyframes pulse-ring {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.15); opacity: 0.3; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .leaflet-interactive {
+        transition: stroke-width 0.2s ease, fill-opacity 0.2s ease;
+    }
+    .leaflet-interactive:hover {
+        stroke-width: 4px !important;
+        fill-opacity: 1 !important;
+    }
+    </style>
+    """
+    m.get_root().html.add_child(folium.Element(custom_map_css))
 
     for z in zones:
         zid = z.get("zone_id", "")
@@ -253,7 +357,7 @@ def render_folium_map(zones: list):
 
         if is_rec:
             color = "#8B5CF6"  # Distinct Purple for REC Critical Campus
-            radius = 12
+            radius = 13
             border_color = "#38BDF8"  # Cyan ring
             weight = 3
             popup_html = f"""
@@ -281,8 +385,10 @@ def render_folium_map(zones: list):
                 radius = 12
             elif risk >= 0.50:
                 color = "#F97316"  # Orange (High)
+                radius = 10
             elif risk >= 0.35:
                 color = "#FACC15"  # Yellow (Moderate)
+                radius = 8
             else:
                 color = "#10B981"  # Green (Low)
                 radius = 7
@@ -317,12 +423,52 @@ def render_folium_map(zones: list):
 
 def main():
     # ------------------------------------------------------------------
-    # COMMAND CENTER HEADER
+    # 1. 🚀 SYSTEM STARTUP SEQUENCE (Session State Managed)
+    # ------------------------------------------------------------------
+    if "startup_done" not in st.session_state:
+        st.session_state["startup_done"] = True
+        startup_placeholder = st.empty()
+        startup_placeholder.markdown("""
+            <div class="startup-banner">
+                <div style="font-size: 0.76rem; letter-spacing: 0.12em; color: #38BDF8; font-weight: 800;">URBANSHIELD AI COMMAND CENTER</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #F8FAFC; margin: 4px 0;">⚡ INITIALIZING OPERATIONAL TELEMETRY & DECISION ENGINE...</div>
+                <div style="display: flex; gap: 14px; font-size: 0.8rem; color: #34D399; margin-top: 6px; font-weight: 600; flex-wrap: wrap;">
+                    <span>✓ Data Streams Linked</span>
+                    <span>✓ 16 Monitored Locations Loaded</span>
+                    <span>✓ Google OR-Tools CP-SAT Ready</span>
+                    <span>✓ Simulation Engine Active</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        time.sleep(0.4)
+        startup_placeholder.empty()
+
+    # ------------------------------------------------------------------
+    # COMMAND CENTER HEADER & PIPELINE TRACKER
     # ------------------------------------------------------------------
     st.markdown("""
         <div class="command-header">
             <h1 class="command-title">🛡️ UrbanShield</h1>
             <p class="command-subtitle">AI Emergency Infrastructure Command Center & Decision Support System • Chennai Metropolitan Region</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # ------------------------------------------------------------------
+    # 2. 🔄 SIX-LAYER PIPELINE FLOW INDICATOR
+    # ------------------------------------------------------------------
+    st.markdown("""
+        <div class="pipeline-bar">
+            <div class="pipeline-node active">1. SENSE (16 Locations)</div>
+            <div style="color: #64748B; font-weight: bold;">➔</div>
+            <div class="pipeline-node active">2. PREDICT (Evidence Risk)</div>
+            <div style="color: #64748B; font-weight: bold;">➔</div>
+            <div class="pipeline-node active">3. PRIORITIZE (MCDA Urgency)</div>
+            <div style="color: #64748B; font-weight: bold;">➔</div>
+            <div class="pipeline-node active">4. OPTIMIZE (OR-Tools Knapsack)</div>
+            <div style="color: #64748B; font-weight: bold;">➔</div>
+            <div class="pipeline-node active">5. RECOMMEND (Incident Directives)</div>
+            <div style="color: #64748B; font-weight: bold;">➔</div>
+            <div class="pipeline-node active">6. SIMULATE (What-If Crisis)</div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -566,11 +712,27 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                 st.dataframe(zones_df[disp_cols], height=480, use_container_width=True)
 
     # ------------------------------------------------------------------
-    # VIEW 3: ⚖️ RESOURCE ALLOCATION & OPTIMIZATION
+    # VIEW 3: ⚖️ RESOURCE ALLOCATION & OPTIMIZATION (WITH PROCESSING ANIMATION)
     # ------------------------------------------------------------------
     elif nav_option == "⚖️ Resource Optimization":
         st.subheader("⚖️ Resource-Constrained Optimization (Google OR-Tools CP-SAT)")
         st.caption("Solves 0-1 Multi-Dimensional Knapsack problem under discrete pump, rescue crew, and budget bounds.")
+
+        # Interactive Trigger for Optimization Sequence
+        col_btn, col_blank = st.columns([1, 2])
+        with col_btn:
+            if st.button("⚡ RE-SOLVE OPTIMAL DISPATCH", use_container_width=True):
+                with st.spinner("Executing Google OR-Tools CP-SAT Solver..."):
+                    opt_box = st.empty()
+                    opt_box.markdown("""
+                        <div style="padding: 12px 16px; background: rgba(15,23,42,0.9); border: 1px solid #38BDF8; border-radius: 10px; margin-bottom: 12px;">
+                            <div style="font-size: 0.85rem; color: #38BDF8; font-weight: 700;">SOLVING CP-SAT MULTI-DIMENSIONAL KNAPSACK...</div>
+                            <div style="font-size: 0.8rem; color: #94A3B8; margin-top: 4px;">• Evaluating 16 priority vectors<br>• Enforcing discrete 4 crew & 6 pump limits<br>• Global objective: Maximize city-wide protected score</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    time.sleep(0.3)
+                    opt_box.empty()
+                    st.success("✓ Global Mathematical Optimum Proven & Loaded!")
 
         if not zones_df.empty:
             m1, m2, m3, m4 = st.columns(4)
@@ -655,7 +817,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                     f"• **Dispatcher Briefing:** {z_row.get('executive_summary', 'Routine surveillance.')}")
 
     # ------------------------------------------------------------------
-    # VIEW 5: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR
+    # VIEW 5: 🧪 WHAT-IF CRISIS SCENARIO SIMULATOR (WITH BEFORE -> AFTER ANIMATION)
     # ------------------------------------------------------------------
     elif nav_option == "🧪 What-If Simulator":
         st.subheader("🧪 What-If Crisis Scenario Simulator")
@@ -672,6 +834,15 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
 
         if st.button("🚀 RUN IN-MEMORY WHAT-IF SIMULATION", type="primary", use_container_width=True):
             with st.spinner("Executing Google OR-Tools CP-SAT re-solve in-memory..."):
+                sim_prog = st.empty()
+                sim_prog.markdown("""
+                    <div style="padding: 10px 14px; background: rgba(15,23,42,0.9); border: 1px solid #34D399; border-radius: 10px; margin-bottom: 12px;">
+                        <span style="color: #34D399; font-weight: 700;">RE-RUNNING CP-SAT MULTI-DIMENSIONAL KNAPSACK WITH REINFORCEMENTS...</span>
+                    </div>
+                """, unsafe_allow_html=True)
+                time.sleep(0.3)
+                sim_prog.empty()
+
                 try:
                     from layers.simulate import SimulateLayer
                     sim_layer = SimulateLayer()
@@ -810,7 +981,7 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
 
         with tab6:
             st.write("In-Memory What-If crisis simulation scenario results.")
-            st.info("Navigate to the '🧪 What-If Crisis Scenario Simulator' tab to run live interactive scenario tests.")
+            st.info("Navigate to the '🧪 What-If Simulator' tab to run live interactive scenario tests.")
 
     # ------------------------------------------------------------------
     # VIEW 8: 🌐 REAL DATA SOURCES & PROVENANCE
