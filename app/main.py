@@ -735,6 +735,15 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             st.markdown("### 📤 Upload Observation CSV")
             st.caption("Upload fresh field inspection observations. Required column: `zone_id` (e.g. CHN-Z01 to CHN-Z15, CHN-REC-01). Optional: `rainfall_mm`, `inundation_depth_inches`.")
 
+            sample_csv_data = "zone_id,rainfall_mm,inundation_depth_inches\nCHN-Z02,145.0,28.0\nCHN-Z07,110.0,24.0\nCHN-Z04,95.0,20.0\nCHN-REC-01,75.0,8.0\n"
+            st.download_button(
+                label="📥 Download Ready-to-Upload Sample CSV (Monsoon Surge Scenario)",
+                data=sample_csv_data,
+                file_name="sample_monsoon_surge.csv",
+                mime="text/csv",
+                help="Click to download a pre-formatted valid CSV observation file to test the upload feature."
+            )
+
             uploaded_file = st.file_uploader("Choose CSV Observation File", type=["csv"])
             if uploaded_file is not None:
                 try:
