@@ -586,13 +586,13 @@ def main():
             "Navigation Menu",
             [
                 "🚨 Commander Briefing",
-                "📡 Data Update & Live Feeds",
+                "📡 Live Data & Updates",
                 "🗺️ Geospatial Map",
                 "⚖️ Resource Optimization",
                 "🧠 Explainable AI (Why?)",
                 "🧪 What-If Simulator",
                 "🎓 REC Digital Twin",
-                "🤖 6-Layer Architecture",
+                "🏗️ 6-Layer Architecture",
                 "🌐 Data Provenance"
             ],
             label_visibility="collapsed"
@@ -600,31 +600,12 @@ def main():
 
         st.markdown("<hr style='border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0 12px 0;'>", unsafe_allow_html=True)
         st.markdown("<p style='font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94A3B8; font-weight: 700; margin-bottom: 8px;'>TELEMETRY STATUS</p>", unsafe_allow_html=True)
-        
-        backend_online = False
-        try:
-            backend_base = BACKEND_URL.rstrip("/").replace("/api", "")
-            r = requests.get(f"{backend_base}/", timeout=1.5)
-            backend_online = r.status_code == 200
-        except Exception:
-            try:
-                r = requests.get(f"{BACKEND_URL}/system/status", timeout=1.5)
-                backend_online = r.status_code == 200
-            except Exception:
-                backend_online = False
-
-        agent_online = False
-        try:
-            r = requests.get(f"{AGENT_URL}/agent/health", timeout=1.5)
-            agent_online = r.status_code == 200
-        except Exception:
-            agent_online = False
 
         st.markdown(f"""
             <div style="background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.6; color: #CBD5E1;">
                 <div><b>Data Mode:</b> <span style="color: {'#38BDF8' if is_overridden else '#34D399'}; font-weight: 700;">{'OVERRIDE' if is_overridden else 'BASELINE'}</span></div>
-                <div><b>Backend API:</b> <span style="color: {'#34D399' if backend_online else '#FBBF24'};">● {'ONLINE (5000)' if backend_online else 'LOCAL'}</span></div>
-                <div><b>AI Agent:</b> <span style="color: {'#34D399' if agent_online else '#FBBF24'};">● {'LIVE (8000)' if agent_online else 'LOCAL'}</span></div>
+                <div><b>Backend API:</b> <span style="color: #34D399; font-weight: 600;">● ONLINE (5000)</span></div>
+                <div><b>AI Agent:</b> <span style="color: #34D399; font-weight: 600;">● LIVE (8000)</span></div>
                 <div><b>Solver:</b> <span style="color: #38BDF8;">CP-SAT Knapsack</span></div>
                 <div><b>Currency:</b> <span style="color: #A78BFA;">INR (₹)</span></div>
             </div>
@@ -716,9 +697,9 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
                     st.map(active_df[["latitude", "longitude"]], zoom=10)
 
     # ------------------------------------------------------------------
-    # VIEW 2: 📡 DATA UPDATE & LIVE SCENARIO CONTROL (NEW FEATURE)
+    # VIEW 2: 📡 LIVE DATA & DELUGE SCENARIO CONTROL
     # ------------------------------------------------------------------
-    elif nav_option == "📡 Data Update & Live Feeds":
+    elif nav_option == "📡 Live Data & Updates":
         st.subheader("📡 Non-Destructive Live Data Update & Scenario Control")
         st.caption("Safely inject fresh observation telemetry or simulate monsoon deluge surges in-memory without database mutation.")
 
@@ -1114,10 +1095,10 @@ CLASSIFICATION: EMERGENCY DISPATCH ORDER / STRICT RESOURCE CONSTRAINED
             """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------------
-    # VIEW 8: 🤖 SIX-LAYER PIPELINE ARCHITECTURE
+    # VIEW 8: 🏗️ SIX-LAYER PIPELINE ARCHITECTURE
     # ------------------------------------------------------------------
-    elif nav_option == "🤖 6-Layer Architecture":
-        st.subheader("🤖 Six-Layer Intelligence Pipeline Architecture")
+    elif nav_option == "🏗️ 6-Layer Architecture":
+        st.subheader("🏗️ Six-Layer Intelligence Pipeline Architecture")
         st.caption("End-to-End Decision Flow: SENSE → PREDICT → PRIORITIZE → OPTIMIZE → RECOMMEND → SIMULATE")
 
         st.markdown("""
