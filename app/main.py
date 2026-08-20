@@ -603,10 +603,15 @@ def main():
         
         backend_online = False
         try:
-            r = requests.get(f"{BACKEND_URL}/system/status", timeout=1.5)
+            backend_base = BACKEND_URL.rstrip("/").replace("/api", "")
+            r = requests.get(f"{backend_base}/", timeout=1.5)
             backend_online = r.status_code == 200
         except Exception:
-            backend_online = False
+            try:
+                r = requests.get(f"{BACKEND_URL}/system/status", timeout=1.5)
+                backend_online = r.status_code == 200
+            except Exception:
+                backend_online = False
 
         agent_online = False
         try:
