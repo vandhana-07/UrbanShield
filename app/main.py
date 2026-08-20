@@ -9,11 +9,17 @@ import sys
 import json
 import time
 import io
+from pathlib import Path
 import requests
 import pandas as pd
 import numpy as np
 import streamlit as st
 from datetime import datetime
+
+# Ensure project root is in sys.path for reliable cross-module imports in deployment
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 try:
     import folium
